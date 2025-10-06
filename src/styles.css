@@ -132,3 +132,63 @@
     padding: 8px;
   }
 }
+
+/* ===========================
+   📱 RESPONSIVE NAVBAR
+   =========================== */
+
+.menu-btn {
+  display: none;
+  font-size: 1.8rem;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Hide menu on mobile by default */
+.nav ul {
+  transition: max-height 0.3s ease;
+}
+
+/* Mobile navbar layout */
+@media (max-width: 768px) {
+  .menu-btn {
+    display: block;
+  }
+
+  .nav ul {
+    flex-direction: column;
+    align-items: flex-start;
+    background-color: #111;
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
+    margin-top: 8px;
+    padding-left: 0;
+  }
+
+  .nav ul.active {
+    max-height: 400px; /* enough to show all links */
+    padding: 10px 0;
+  }
+
+  .nav ul li {
+    width: 100%;
+    padding: 8px 16px;
+  }
+
+  .nav a,
+  .linklike {
+    display: block;
+    width: 100%;
+    color: #fff;
+    font-size: 1rem;
+    padding: 8px 0;
+  }
+
+  .linklike:hover,
+  .nav a:hover {
+    color: #0b75db;
+  }
+}
