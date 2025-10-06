@@ -16,6 +16,8 @@ import {
   Badge,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import DoneIcon from "@mui/icons-material/Done";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../socket";
@@ -39,13 +41,12 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const typingTimeout = useRef(null);
 
-  // ✅ Scroll to bottom automatically
-  const scrollToBottom = () => {
+  // ✅ Scroll to bottom
+  const scrollToBottom = () =>
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
   useEffect(scrollToBottom, [messages]);
 
-  // ✅ Load users (excluding self)
+  // ✅ Load users
   useEffect(() => {
     (async () => {
       try {
@@ -57,7 +58,7 @@ export default function Chat() {
     })();
   }, [user]);
 
-  // ✅ Load messages for selected user
+  // ✅ Load conversation
   const loadConversation = async (targetUser) => {
     try {
       setLoading(true);
@@ -66,6 +67,13 @@ export default function Chat() {
 
       const res = await get(`/chat/${conv._id}/messages?limit=50`);
       setMessages(res.messages || []);
+
+      // Mark unseen messages as seen
+      res.messages?.forEach((m) => {
+        if (m.to === user._id && m.status !== "seen") {
+          socket.emit("message:mark", { messageId: m._id, status: "seen" });
+        }
+      });
     } catch {
       setError("Failed to load conversation");
     } finally {
@@ -98,7 +106,7 @@ export default function Chat() {
     });
   };
 
-  // ✅ Handle typing indicator
+  // ✅ Typing
   const handleTyping = (e) => {
     setDraft(e.target.value);
     if (!socket || !active) return;
@@ -141,7 +149,7 @@ export default function Chat() {
     setSelectedMsg(null);
   };
 
-  // ✅ Listen for live socket updates
+  // ✅ Live socket listeners
   useEffect(() => {
     if (!socket) return;
 
@@ -149,6 +157,14 @@ export default function Chat() {
       if (message.conversation === active?.conversationId) {
         setMessages((prev) => [...prev, message]);
         scrollToBottom();
+
+        // If receiver is active, mark as seen
+        if (message.to === user._id) {
+          socket.emit("message:mark", {
+            messageId: message._id,
+            status: "seen",
+          });
+        }
       }
     };
 
@@ -175,18 +191,28 @@ export default function Chat() {
       }
     };
 
+    const handleMessageUpdate = ({ messageId, status }) => {
+      setMessages((msgs) =>
+        msgs.map((m) =>
+          m._id === messageId ? { ...m, status: status } : m
+        )
+      );
+    };
+
     socket.on("message:new", handleNew);
     socket.on("message:deleted", handleDeleted);
     socket.on("typing", handleTypingEvent);
+    socket.on("message:update", handleMessageUpdate);
 
     return () => {
       socket.off("message:new", handleNew);
       socket.off("message:deleted", handleDeleted);
       socket.off("typing", handleTypingEvent);
+      socket.off("message:update", handleMessageUpdate);
     };
   }, [socket, active?.conversationId, users, user?._id]);
 
-  // ✅ Fix: Wait until user loads (prevents left-alignment bug)
+  // ✅ Fix alignment delay
   if (!user || !user._id) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
@@ -196,11 +222,8 @@ export default function Chat() {
     );
   }
 
-  // ✅ Trigger re-render when user context updates
   useEffect(() => {
-    if (user && user._id) {
-      setMessages((prev) => [...prev]);
-    }
+    if (user && user._id) setMessages((prev) => [...prev]);
   }, [user]);
 
   if (loading && !messages.length) {
@@ -210,6 +233,20 @@ export default function Chat() {
       </Box>
     );
   }
+
+  // ✅ Helper to show message ticks
+  const renderStatus = (msg) => {
+    if (msg.from !== user._id) return null;
+
+    if (msg.status === "sent") {
+      return <DoneIcon fontSize="small" sx={{ ml: 0.5, color: "gray" }} />;
+    } else if (msg.status === "delivered") {
+      return <DoneAllIcon fontSize="small" sx={{ ml: 0.5, color: "gray" }} />;
+    } else if (msg.status === "seen") {
+      return <DoneAllIcon fontSize="small" sx={{ ml: 0.5, color: "#2196f3" }} />;
+    }
+    return null;
+  };
 
   return (
     <Box
@@ -267,9 +304,9 @@ export default function Chat() {
         </Box>
 
         <Box className="chat-body">
-          {messages.map((m, i) => (
+          {messages.map((m) => (
             <Stack
-              key={m._id || i}
+              key={m._id}
               alignItems={
                 (m.from?._id || m.from) === user._id ? "flex-end" : "flex-start"
               }
@@ -287,13 +324,19 @@ export default function Chat() {
                 }}
               >
                 <Typography>{m.body}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {new Date(m.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
-                  • {m.status}
-                </Typography>
+                <Stack direction="row" alignItems="center" spacing={0.2}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: "0.75rem" }}
+                  >
+                    {new Date(m.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Typography>
+                  {renderStatus(m)}
+                </Stack>
               </Box>
             </Stack>
           ))}
@@ -311,7 +354,6 @@ export default function Chat() {
               🖊️ {typingUser} is typing...
             </Typography>
           )}
-
           <div ref={messagesEndRef} />
         </Box>
 
