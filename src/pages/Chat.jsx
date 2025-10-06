@@ -14,13 +14,8 @@ import {
   Menu,
   MenuItem,
   Badge,
-  Drawer,
-  AppBar,
-  Toolbar,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import MenuIcon from "@mui/icons-material/Menu";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../socket";
@@ -37,19 +32,20 @@ export default function Chat() {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedMsg, setSelectedMsg] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [typingUser, setTypingUser] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const typingTimeout = useRef(null);
 
+  // ✅ Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(scrollToBottom, [messages]);
 
-  // Load users
+  // ✅ Load users
   useEffect(() => {
     (async () => {
       try {
@@ -61,15 +57,15 @@ export default function Chat() {
     })();
   }, [user]);
 
-  // Load conversation
+  // ✅ Load conversation
   const loadConversation = async (targetUser) => {
     try {
       setLoading(true);
       const conv = await post(`/chat/start/${targetUser._id}`);
       setActive({ ...targetUser, conversationId: conv._id });
-      const res = await get(`/chat/${conv._id}/messages?limit=30`);
+
+      const res = await get(`/chat/${conv._id}/messages?limit=50`);
       setMessages(res.messages || []);
-      setDrawerOpen(false); // close drawer on mobile
     } catch {
       setError("Failed to load conversation");
     } finally {
@@ -77,23 +73,52 @@ export default function Chat() {
     }
   };
 
-  // Send message
+  // ✅ Send message
   const sendMessage = () => {
-    if (!draft.trim() || !active) return;
+    if (!draft.trim() || !active || !socket) return;
+
     const payload = {
       conversationId: active.conversationId,
       to: active._id,
       body: draft.trim(),
     };
+
     socket.emit("message:send", payload, (ack) => {
-      if (ack?.ok) setMessages((m) => [...m, ack.message]);
+      if (ack?.ok && ack.message) {
+        setMessages((prev) => [...prev, ack.message]);
+        scrollToBottom();
+      }
     });
+
     setDraft("");
+    socket.emit("typing", { to: active._id, conversationId: active.conversationId, typing: false });
   };
 
-  // Delete message
+  // ✅ Typing indicator
+  const handleTyping = (e) => {
+    setDraft(e.target.value);
+    if (!socket || !active) return;
+
+    socket.emit("typing", {
+      to: active._id,
+      conversationId: active.conversationId,
+      typing: true,
+    });
+
+    clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {
+      socket.emit("typing", {
+        to: active._id,
+        conversationId: active.conversationId,
+        typing: false,
+      });
+    }, 2000);
+  };
+
+  // ✅ Delete message
   const handleDelete = (mode) => {
-    if (!selectedMsg) return;
+    if (!selectedMsg || !socket) return;
+
     socket.emit("message:delete", { messageId: selectedMsg._id, mode }, (ack) => {
       if (ack?.ok) {
         if (mode === "me") {
@@ -107,19 +132,23 @@ export default function Chat() {
         }
       }
     });
+
     setMenuAnchor(null);
     setSelectedMsg(null);
   };
 
-  // Socket listeners
+  // ✅ Socket listeners (new message + delete + typing)
   useEffect(() => {
     if (!socket) return;
-    socket.on("message:new", ({ message }) => {
+
+    const handleNew = ({ message }) => {
       if (message.conversation === active?.conversationId) {
-        setMessages((m) => [...m, message]);
+        setMessages((prev) => [...prev, message]);
+        scrollToBottom();
       }
-    });
-    socket.on("message:deleted", ({ messageId, mode }) => {
+    };
+
+    const handleDeleted = ({ messageId, mode }) => {
       if (mode === "everyone") {
         setMessages((msgs) =>
           msgs.map((m) =>
@@ -127,38 +156,72 @@ export default function Chat() {
           )
         );
       }
-    });
-    return () => {
-      socket.off("message:new");
-      socket.off("message:deleted");
     };
-  }, [socket, active?.conversationId]);
+
+    const handleTyping = ({ from, typing }) => {
+      if (from !== user._id && typing) {
+        const typingUserObj = users.find((u) => u._id === from);
+        if (typingUserObj) {
+          setTypingUser(typingUserObj.name);
+          clearTimeout(typingTimeout.current);
+          typingTimeout.current = setTimeout(() => setTypingUser(null), 2000);
+        }
+      } else {
+        setTypingUser(null);
+      }
+    };
+
+    socket.on("message:new", handleNew);
+    socket.on("message:deleted", handleDeleted);
+    socket.on("typing", handleTyping);
+
+    return () => {
+      socket.off("message:new", handleNew);
+      socket.off("message:deleted", handleDeleted);
+      socket.off("typing", handleTyping);
+    };
+  }, [socket, active?.conversationId, users]);
 
   if (loading && !messages.length) {
     return (
-      <Box className="chat-loading">
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box className="chat-container">
-      {/* Desktop Sidebar */}
-      <Paper className="chat-sidebar desktop-only">
-        <Typography variant="h6" className="sidebar-title">
+    <Box
+      sx={{
+        p: 2,
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "280px 1fr" },
+        gap: 2,
+        height: "calc(100vh - 100px)",
+      }}
+    >
+      {/* Sidebar */}
+      <Paper sx={{ p: 1, overflow: "auto" }}>
+        <Typography variant="h6" sx={{ p: 1, fontWeight: "bold" }}>
           All Users
         </Typography>
         <Divider />
-        <List className="user-list">
+        <List>
           {users.map((u) => (
             <ListItemButton
               key={u._id}
               selected={active?._id === u._id}
               onClick={() => loadConversation(u)}
-              className={`user-item ${
-                active?._id === u._id ? "user-selected" : ""
-              }`}
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                mb: 1,
+                "&.Mui-selected": {
+                  bgcolor: "primary.light",
+                  color: "white",
+                  "& .MuiTypography-root": { color: "white" },
+                },
+              }}
             >
               <Badge
                 color="success"
@@ -166,130 +229,82 @@ export default function Chat() {
                 overlap="circular"
                 invisible={!u.online}
               >
-                <Avatar src={u.avatar} className="user-avatar">
-                  {u.name[0]}
+                <Avatar src={u.avatar} sx={{ mr: 2 }}>
+                  {u.name[0].toUpperCase()}
                 </Avatar>
               </Badge>
-              <Typography fontWeight="500">{u.name}</Typography>
+              <Typography fontWeight="medium">{u.name}</Typography>
             </ListItemButton>
           ))}
         </List>
       </Paper>
 
-      {/* Mobile Drawer Sidebar */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      >
-        <Box sx={{ width: 260, p: 1 }}>
-          <Typography variant="h6" sx={{ p: 1, fontWeight: "bold" }}>
-            All Users
-          </Typography>
-          <Divider />
-          <List>
-            {users.map((u) => (
-              <ListItemButton
-                key={u._id}
-                onClick={() => loadConversation(u)}
-                selected={active?._id === u._id}
-              >
-                <Badge
-                  color="success"
-                  variant="dot"
-                  overlap="circular"
-                  invisible={!u.online}
-                >
-                  <Avatar src={u.avatar} sx={{ mr: 2 }}>
-                    {u.name[0]}
-                  </Avatar>
-                </Badge>
-                <Typography>{u.name}</Typography>
-              </ListItemButton>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
-
       {/* Chat Window */}
       <Paper className="chat-window">
-        <AppBar position="static" sx={{ background: "#1565c0" }}>
-          <Toolbar
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              px: 2,
-            }}
-          >
-            {/* Mobile menu button */}
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={() => setDrawerOpen(true)}
-              className="mobile-only"
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              {active ? active.name : "Select a user"}
-            </Typography>
-          </Toolbar>
-        </AppBar>
+        <Box className="chat-header">
+          {active ? active.name : "Select a user"}
+        </Box>
 
-        <Box className="chat-messages">
+        <Box className="chat-body">
           {messages.map((m, i) => (
             <Stack
               key={m._id || i}
-              className={`chat-bubble-wrapper ${
-                m.from === user._id ? "sent" : "received"
-              }`}
+              alignItems={m.from === user._id ? "flex-end" : "flex-start"}
+              sx={{ mb: 2 }}
             >
               <Box
                 className={`chat-bubble ${
-                  m.from === user._id ? "bubble-sent" : "bubble-received"
+                  m.from === user._id ? "sent" : "received"
                 }`}
+                onClick={(e) => {
+                  if (m.from === user._id) {
+                    setMenuAnchor(e.currentTarget);
+                    setSelectedMsg(m);
+                  }
+                }}
               >
                 <Typography>{m.body}</Typography>
-                {m.from === user._id && (
-                  <IconButton
-                    size="small"
-                    className="msg-menu-btn"
-                    onClick={(e) => {
-                      setMenuAnchor(e.currentTarget);
-                      setSelectedMsg(m);
-                    }}
-                  >
-                    <MoreVertIcon fontSize="small" />
-                  </IconButton>
-                )}
+                <Typography variant="caption" color="text.secondary">
+                  {new Date(m.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  • {m.status}
+                </Typography>
               </Box>
-              <Typography variant="caption" className="msg-time">
-                {new Date(m.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                • {m.status}
-              </Typography>
             </Stack>
           ))}
+          {typingUser && (
+            <Typography
+              sx={{
+                fontStyle: "italic",
+                fontSize: "0.85rem",
+                color: "gray",
+                mb: 1,
+                textAlign: "left",
+              }}
+            >
+              🖊️ {typingUser} is typing...
+            </Typography>
+          )}
           <div ref={messagesEndRef} />
         </Box>
 
-        {/* Input */}
-        <Box className="chat-input-bar">
-          <TextField
-            size="small"
-            fullWidth
-            placeholder="Type a message…"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            className="chat-input"
-          />
-          <IconButton className="send-btn" onClick={sendMessage}>
-            <SendIcon />
-          </IconButton>
-        </Box>
+        {active && (
+          <Box className="chat-input">
+            <TextField
+              size="small"
+              fullWidth
+              placeholder="Type a message…"
+              value={draft}
+              onChange={handleTyping}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <IconButton color="primary" onClick={sendMessage}>
+              <SendIcon />
+            </IconButton>
+          </Box>
+        )}
       </Paper>
 
       {/* Delete Menu */}
