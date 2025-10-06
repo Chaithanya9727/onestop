@@ -19,20 +19,22 @@ import {
   TableContainer,
   Stack,
   TextField,
+  useMediaQuery,
 } from "@mui/material";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
-import '../styles.css'
+import "../styles.css";
 
 export default function AdminPanel() {
   const { role } = useAuth();
   const { get, put, del, post } = useApi();
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState(0); // 0 = Manage Users, 1 = Messages
+  const [tab, setTab] = useState(0);
   const [expandedMsg, setExpandedMsg] = useState(null);
   const [replyText, setReplyText] = useState("");
 
@@ -79,7 +81,6 @@ export default function AdminPanel() {
       const interval = setInterval(() => {
         loadMessages();
       }, 10000);
-
       return () => clearInterval(interval);
     }
   }, [tab]);
@@ -174,13 +175,17 @@ export default function AdminPanel() {
   }
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
       <Typography variant="h4" gutterBottom>
         👑 Admin Panel
       </Typography>
 
       {/* Tabs */}
-      <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3 }}>
+      <Tabs
+        value={tab}
+        onChange={(e, v) => setTab(v)}
+        sx={{ mb: 3, flexWrap: "wrap" }}
+      >
         <Tab label="Manage Users" />
         <Tab label="Messages" />
       </Tabs>
@@ -190,113 +195,168 @@ export default function AdminPanel() {
 
       {/* Manage Users */}
       {tab === 0 && (
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={{ p: { xs: 2, md: 3 } }}>
           {users.length === 0 ? (
             <Typography>No users found.</Typography>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><b>Name</b></TableCell>
-                  <TableCell><b>Email</b></TableCell>
-                  <TableCell><b>Role</b></TableCell>
-                  <TableCell><b>Actions</b></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u._id}>
-                    <TableCell>{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={u.role}
-                        color={
-                          u.role === "admin"
-                            ? "error"
-                            : u.role === "student"
-                            ? "primary"
-                            : "default"
-                        }
-                        size="small"
-                        sx={{ mr: 2 }}
-                      />
-                      <Select
-                        size="small"
-                        value={u.role}
-                        onChange={(e) =>
-                          handleRoleChange(u._id, e.target.value)
-                        }
-                      >
-                        <MenuItem value="admin">Admin</MenuItem>
-                        <MenuItem value="student">Student</MenuItem>
-                        <MenuItem value="guest">Guest</MenuItem>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          variant="outlined"
+            <TableContainer>
+              <Table>
+                {!isMobile && (
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>
+                        <b>Name</b>
+                      </TableCell>
+                      <TableCell>
+                        <b>Email</b>
+                      </TableCell>
+                      <TableCell>
+                        <b>Role</b>
+                      </TableCell>
+                      <TableCell>
+                        <b>Actions</b>
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                )}
+                <TableBody>
+                  {users.map((u) => (
+                    <TableRow
+                      key={u._id}
+                      sx={{
+                        display: isMobile ? "block" : "table-row",
+                        mb: isMobile ? 2 : 0,
+                        borderRadius: isMobile ? 2 : 0,
+                        boxShadow: isMobile
+                          ? "0 2px 8px rgba(0,0,0,0.1)"
+                          : "none",
+                        p: isMobile ? 2 : 0,
+                      }}
+                    >
+                      <TableCell data-label="Name">{u.name}</TableCell>
+                      <TableCell data-label="Email">{u.email}</TableCell>
+                      <TableCell data-label="Role">
+                        <Chip
+                          label={u.role}
+                          color={
+                            u.role === "admin"
+                              ? "error"
+                              : u.role === "student"
+                              ? "primary"
+                              : "default"
+                          }
                           size="small"
-                          onClick={() => handleResetPassword(u._id)}
-                        >
-                          Reset Password
-                        </Button>
-                        <Button
-                          variant="contained"
+                          sx={{ mr: 2 }}
+                        />
+                        <Select
                           size="small"
-                          color="error"
-                          onClick={() => handleDeleteUser(u._id)}
+                          value={u.role}
+                          onChange={(e) =>
+                            handleRoleChange(u._id, e.target.value)
+                          }
                         >
-                          Delete
-                        </Button>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          <MenuItem value="admin">Admin</MenuItem>
+                          <MenuItem value="student">Student</MenuItem>
+                          <MenuItem value="guest">Guest</MenuItem>
+                        </Select>
+                      </TableCell>
+                      <TableCell data-label="Actions">
+                        <Stack
+                          direction={isMobile ? "column" : "row"}
+                          spacing={1}
+                        >
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => handleResetPassword(u._id)}
+                            fullWidth={isMobile}
+                          >
+                            Reset Password
+                          </Button>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteUser(u._id)}
+                            fullWidth={isMobile}
+                          >
+                            Delete
+                          </Button>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </Paper>
       )}
 
       {/* Messages */}
       {tab === 1 && (
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={{ p: { xs: 2, md: 3 } }}>
           <Typography variant="h6" gutterBottom>
             📩 Messages
           </Typography>
           <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><b>Name</b></TableCell>
-                  <TableCell><b>Email</b></TableCell>
-                  <TableCell><b>Message</b></TableCell>
-                  <TableCell><b>Time</b></TableCell>
-                  <TableCell><b>Actions</b></TableCell>
-                </TableRow>
-              </TableHead>
+              {!isMobile && (
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <b>Name</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Email</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Message</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Time</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Actions</b>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+              )}
               <TableBody>
                 {messages.map((m) => (
                   <>
-                    <TableRow key={m._id}>
-                      <TableCell>{m.name}</TableCell>
-                      <TableCell>{m.email}</TableCell>
-                      <TableCell>
+                    <TableRow
+                      key={m._id}
+                      sx={{
+                        display: isMobile ? "block" : "table-row",
+                        mb: isMobile ? 2 : 0,
+                        borderRadius: isMobile ? 2 : 0,
+                        boxShadow: isMobile
+                          ? "0 2px 8px rgba(0,0,0,0.1)"
+                          : "none",
+                        p: isMobile ? 2 : 0,
+                      }}
+                    >
+                      <TableCell data-label="Name">{m.name}</TableCell>
+                      <TableCell data-label="Email">{m.email}</TableCell>
+                      <TableCell data-label="Message">
                         {m.message.length > 80
                           ? m.message.slice(0, 80) + "..."
                           : m.message}
                       </TableCell>
-                      <TableCell>
+                      <TableCell data-label="Time">
                         {new Date(m.createdAt).toLocaleString()}
                       </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
+                      <TableCell data-label="Actions">
+                        <Stack
+                          direction={isMobile ? "column" : "row"}
+                          spacing={1}
+                        >
                           <Button
                             color="error"
                             size="small"
                             onClick={() => handleDeleteMessage(m._id)}
+                            fullWidth={isMobile}
                           >
                             Delete
                           </Button>
@@ -304,8 +364,11 @@ export default function AdminPanel() {
                             variant="outlined"
                             size="small"
                             onClick={() =>
-                              setExpandedMsg(expandedMsg === m._id ? null : m._id)
+                              setExpandedMsg(
+                                expandedMsg === m._id ? null : m._id
+                              )
                             }
+                            fullWidth={isMobile}
                           >
                             {expandedMsg === m._id ? "Hide" : "Reply"}
                           </Button>
@@ -313,7 +376,6 @@ export default function AdminPanel() {
                       </TableCell>
                     </TableRow>
 
-                    {/* Expanded Chat Section */}
                     {expandedMsg === m._id && (
                       <TableRow>
                         <TableCell colSpan={5}>
@@ -326,7 +388,7 @@ export default function AdminPanel() {
                               overflowY: "auto",
                             }}
                           >
-                            {/* User message bubble */}
+                            {/* User message */}
                             <Box
                               sx={{
                                 display: "flex",
@@ -341,7 +403,9 @@ export default function AdminPanel() {
                                   bgcolor: "#e0f7fa",
                                 }}
                               >
-                                <Typography variant="body1">{m.message}</Typography>
+                                <Typography variant="body1">
+                                  {m.message}
+                                </Typography>
                                 <Typography
                                   variant="caption"
                                   color="text.secondary"
@@ -353,45 +417,47 @@ export default function AdminPanel() {
                             </Box>
 
                             {/* Replies */}
-                            {m.replies && m.replies.length > 0 && (
-                              m.replies.map((r) => (
-                                <Box
-                                  key={r._id}
+                            {m.replies?.map((r) => (
+                              <Box
+                                key={r._id}
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "flex-end",
+                                  mb: 2,
+                                }}
+                              >
+                                <Paper
                                   sx={{
-                                    display: "flex",
-                                    justifyContent: "flex-end",
-                                    mb: 2,
+                                    p: 1.5,
+                                    maxWidth: "70%",
+                                    bgcolor: "#fce4ec",
                                   }}
                                 >
-                                  <Paper
-                                    sx={{
-                                      p: 1.5,
-                                      maxWidth: "70%",
-                                      bgcolor: "#fce4ec",
-                                    }}
+                                  <Typography variant="body2">
+                                    {r.text}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
                                   >
-                                    <Typography variant="body2">{r.text}</Typography>
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      {new Date(r.repliedAt).toLocaleString()} by{" "}
-                                      {r.repliedBy?.name || "Admin"}
-                                    </Typography>
-                                    <Button
-                                      size="small"
-                                      color="error"
-                                      sx={{ ml: 2 }}
-                                      onClick={() =>
-                                        handleDeleteReply(m._id, r._id)
-                                      }
-                                    >
-                                      Delete Reply
-                                    </Button>
-                                  </Paper>
-                                </Box>
-                              ))
-                            )}
+                                    {new Date(
+                                      r.repliedAt
+                                    ).toLocaleString()}{" "}
+                                    by {r.repliedBy?.name || "Admin"}
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    sx={{ ml: 2 }}
+                                    onClick={() =>
+                                      handleDeleteReply(m._id, r._id)
+                                    }
+                                  >
+                                    Delete Reply
+                                  </Button>
+                                </Paper>
+                              </Box>
+                            ))}
 
                             {/* Reply form */}
                             <Stack spacing={2} sx={{ mt: 2 }}>
@@ -400,12 +466,16 @@ export default function AdminPanel() {
                                 multiline
                                 minRows={2}
                                 value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
+                                onChange={(e) =>
+                                  setReplyText(e.target.value)
+                                }
                               />
                               <Stack direction="row" justifyContent="flex-end">
                                 <Button
                                   variant="contained"
-                                  onClick={() => handleSendReply(m._id)}
+                                  onClick={() =>
+                                    handleSendReply(m._id)
+                                  }
                                   disabled={!replyText.trim()}
                                 >
                                   Send Reply

@@ -194,150 +194,116 @@
 }
 
 /* ======================================
-   📱 ADMIN PANEL RESPONSIVE STYLING
+   🧭 ADMIN PANEL - FULL RESPONSIVE FIX
    ====================================== */
 
-/* For tablets and below (≤1024px) */
-@media (max-width: 1024px) {
-  .MuiTable-root {
-    font-size: 0.9rem;
+@media (max-width: 768px) {
+  /* Hide table header */
+  .MuiTableHead-root {
+    display: none !important;
   }
 
+  /* Turn each row into a responsive card */
+  .MuiTableBody-root tr {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+  }
+
+  /* Each cell acts as a small block */
   .MuiTableCell-root {
-    padding: 6px 8px !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none !important;
+    padding: 6px 0 !important;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+
+  /* Left labels (Name, Role, etc.) */
+  .MuiTableCell-root::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #555;
+    flex: 1;
+    max-width: 120px;
+  }
+
+  /* Action buttons stack vertically */
+  .MuiStack-root {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100%;
   }
 
   .MuiButton-root {
-    font-size: 0.8rem !important;
+    width: 100% !important;
+    font-size: 0.85rem !important;
   }
 
-  .MuiTypography-h4 {
-    font-size: 1.6rem !important;
+  /* Chips smaller */
+  .MuiChip-root {
+    font-size: 0.75rem !important;
   }
 
-  .MuiTabs-root {
-    flex-wrap: wrap;
+  /* Select (Role dropdown) full width */
+  .MuiSelect-root,
+  .MuiInputBase-root {
+    width: 100% !important;
+  }
+
+  /* Paper (cards) compact */
+  .MuiPaper-root {
+    padding: 12px !important;
+    overflow-x: auto;
+  }
+
+  /* Tabs stacked */
+  .MuiTabs-flexContainer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .MuiTab-root {
+    width: 100% !important;
     justify-content: center;
   }
 
-  .MuiTab-root {
-    font-size: 0.9rem !important;
-  }
-}
-
-/* For mobile (≤768px) */
-@media (max-width: 768px) {
-  /* 🧩 Make main container padding smaller */
-  .MuiBox-root {
-    padding: 12px !important;
-  }
-
-  /* 📋 Table responsive layout */
+  /* Table container scroll fix */
   .MuiTableContainer-root {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 6px;
-  }
-
-  table {
-    min-width: 600px; /* prevent table breakage */
-  }
-
-  .MuiTableHead-root {
-    background-color: #f5f5f5;
-  }
-
-  /* ✉️ Messages section layout */
-  .MuiPaper-root {
-    padding: 12px !important;
-  }
-
-  .MuiTableCell-root {
-    padding: 8px 10px !important;
-    font-size: 0.85rem !important;
-  }
-
-  .MuiTypography-h6 {
-    font-size: 1.1rem !important;
-  }
-
-  /* ✅ Buttons and chips */
-  .MuiButton-root {
-    font-size: 0.8rem !important;
-    padding: 6px 10px !important;
-  }
-
-  .MuiChip-root {
-    font-size: 0.7rem !important;
-  }
-
-  /* 📨 Expanded message view */
-  .MuiBox-root[style*="overflow-y: auto"] {
-    max-height: 300px !important;
-    padding: 10px !important;
-  }
-
-  /* 💬 TextFields */
-  .MuiInputBase-input {
-    font-size: 0.85rem !important;
-  }
-
-  /* 📄 Tabs */
-  .MuiTabs-flexContainer {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .MuiTab-root {
-    width: 100%;
-    text-align: center;
-  }
-
-  /* 🔘 Actions column */
-  .MuiStack-root {
-    flex-direction: column !important;
-    gap: 6px !important;
-  }
-
-  /* 🔲 Manage Users section */
-  .MuiTableRow-root td {
-    vertical-align: top;
+    overflow: visible !important;
   }
 }
 
-/* For small phones (≤480px) */
 @media (max-width: 480px) {
   .MuiTypography-h4 {
     font-size: 1.3rem !important;
     text-align: center;
   }
 
-  .MuiTabs-root {
-    margin-bottom: 10px;
-  }
-
-  .MuiTableCell-root {
-    font-size: 0.8rem !important;
-  }
-
   .MuiButton-root {
-    font-size: 0.75rem !important;
-    padding: 5px 8px !important;
+    font-size: 0.8rem !important;
+    padding: 8px !important;
   }
 
   .MuiChip-root {
-    font-size: 0.65rem !important;
+    font-size: 0.7rem !important;
   }
 
-  .MuiTextField-root {
-    width: 100% !important;
+  .MuiSelect-root {
+    font-size: 0.85rem !important;
   }
 
-  /* 💬 Reply section */
-  .MuiStack-root[style*="justify-content: flex-end"] {
-    flex-direction: column !important;
-    align-items: flex-end;
-    gap: 8px;
+  .MuiTableBody-root tr {
+    padding: 10px !important;
+  }
+
+  .MuiTableCell-root {
+    font-size: 0.85rem !important;
   }
 }
