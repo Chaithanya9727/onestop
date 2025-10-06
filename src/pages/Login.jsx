@@ -11,7 +11,7 @@ import {
 import { useNavigate, Link as RouterLink } from "react-router-dom"
 import useApi from "../hooks/useApi"
 import { useAuth } from "../context/AuthContext"
-import './styles.css'
+import '../styles.css'
 
 export default function Login() {
   const navigate = useNavigate()

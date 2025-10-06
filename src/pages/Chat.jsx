@@ -21,7 +21,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../socket";
-import './styles.css'
+import '../styles.css'
 
 export default function Chat() {
   const { get, post } = useApi();

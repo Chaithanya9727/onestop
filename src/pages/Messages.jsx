@@ -19,7 +19,7 @@ import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/DisabledByDefault";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
-import './styles.css'
+import '../styles.css'
 
 export default function Messages() {
   const { role } = useAuth();

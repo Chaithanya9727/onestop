@@ -12,7 +12,7 @@ import {
 } from "@mui/material"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
-import './styles.css'
+import '../styles.css'
 
 const drawerWidth = 220
 

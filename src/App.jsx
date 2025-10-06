@@ -18,6 +18,7 @@ import Events from "./pages/Events.jsx";
 import Chat from "./pages/Chat.jsx"; // ✅ Chat page
 import { SocketProvider } from "./socket.jsx"; // ✅ Named import for the provider
 
+
 export default function App() {
   return (
     <>
