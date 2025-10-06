@@ -20,6 +20,7 @@ import ChatIcon from "@mui/icons-material/Chat"; // Add this import
 import { useEffect, useState } from "react";
 import useApi from "../hooks/useApi";
 import { motion } from "framer-motion";
+import './styles.css'
 
 export default function Navbar() {
   const { user, role, logout } = useAuth();

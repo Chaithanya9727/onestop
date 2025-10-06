@@ -16,6 +16,7 @@ import {
 } from "@mui/material"
 import { useAuth } from "../context/AuthContext"
 import useApi from "../hooks/useApi"
+import './styles.css'
 
 export default function Notices() {
   const { role, token } = useAuth()

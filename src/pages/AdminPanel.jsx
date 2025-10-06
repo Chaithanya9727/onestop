@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
+import './styles.css'
 
 export default function AdminPanel() {
   const { role } = useAuth();

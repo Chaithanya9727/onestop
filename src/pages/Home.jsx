@@ -17,6 +17,7 @@ import SchoolIcon from "@mui/icons-material/School"
 import SecurityIcon from "@mui/icons-material/Security"
 import PeopleIcon from "@mui/icons-material/People"
 import FolderIcon from "@mui/icons-material/Folder"
+import './styles.css'
 
 export default function Home() {
   const navigate = useNavigate()

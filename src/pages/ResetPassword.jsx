@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { TextField, Button, Paper, Typography, Alert } from "@mui/material"
 import { useParams, useNavigate } from "react-router-dom"
+import './styles.css'
 
 export default function ResetPassword() {
   const { token } = useParams()

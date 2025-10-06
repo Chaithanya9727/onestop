@@ -17,6 +17,7 @@ import {
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { UAParser } from "ua-parser-js";
+import './styles.css'
 
 
 export default function Profile() {

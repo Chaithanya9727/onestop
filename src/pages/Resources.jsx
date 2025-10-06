@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import useApi from "../hooks/useApi";
 import { useLocation, useNavigate } from "react-router-dom";
 import ResourceCard from "../components/ResourceCard";
+import './styles.css'
 
 export default function Resources() {
   const { user, role } = useAuth();

@@ -13,6 +13,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InsertLinkIcon from "@mui/icons-material/InsertLink";
 import CloseIcon from "@mui/icons-material/Close";
+import './styles.css'
 
 export default function ResourceCard({ resource, user, role, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);

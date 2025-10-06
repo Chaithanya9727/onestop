@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { TextField, Button, Paper, Typography, Alert } from "@mui/material"
+import './styles.css'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("")

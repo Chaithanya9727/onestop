@@ -14,6 +14,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import useApi from "../hooks/useApi";
+import './styles.css'
 
 export default function Dashboard() {
   const { user, role, loading: authLoading } = useAuth();

@@ -21,6 +21,7 @@ import {
   Autocomplete,
 } from "@mui/material";
 import useApi from "../hooks/useApi";
+import './styles.css'
 
 export default function AdminLogs() {
   const { get, del } = useApi();

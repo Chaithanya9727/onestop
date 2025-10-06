@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react"
+import './styles.css'
 
 const AuthContext = createContext()
 
