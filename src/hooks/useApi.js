@@ -1,7 +1,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useCallback } from "react";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://server-hv9f.onrender.com/api";
 
 export default function useApi() {
   const { token } = useAuth();

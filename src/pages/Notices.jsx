@@ -89,7 +89,7 @@ export default function Notices() {
     const formData = new FormData()
     formData.append("file", fileObj)
 
-    const res = await fetch("http://localhost:5000/api/resources/upload", {
+    const res = await fetch("https://server-hv9f.onrender.com/api/resources/upload", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,

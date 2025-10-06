@@ -19,7 +19,7 @@ export function SocketProvider({ children }) {
     console.log("🔄 Creating new socket connection with token");
     setConnectionStatus("connecting");
 
-    const newSocket = io("http://localhost:5000", {
+    const newSocket = io("https://server-hv9f.onrender.com/", {
       auth: {
         token: token
       },
