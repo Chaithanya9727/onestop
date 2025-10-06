@@ -39,25 +39,25 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const typingTimeout = useRef(null);
 
-  // ✅ Auto-scroll to bottom
+  // ✅ Scroll to bottom automatically
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(scrollToBottom, [messages]);
 
-  // ✅ Load users
+  // ✅ Load users (excluding self)
   useEffect(() => {
     (async () => {
       try {
         const list = await get("/users");
-        setUsers(list.filter((u) => u._id !== user._id));
+        setUsers(list.filter((u) => u._id !== user?._id));
       } catch {
         setError("Failed to load users");
       }
     })();
   }, [user]);
 
-  // ✅ Load conversation
+  // ✅ Load messages for selected user
   const loadConversation = async (targetUser) => {
     try {
       setLoading(true);
@@ -91,10 +91,14 @@ export default function Chat() {
     });
 
     setDraft("");
-    socket.emit("typing", { to: active._id, conversationId: active.conversationId, typing: false });
+    socket.emit("typing", {
+      to: active._id,
+      conversationId: active.conversationId,
+      typing: false,
+    });
   };
 
-  // ✅ Typing indicator
+  // ✅ Handle typing indicator
   const handleTyping = (e) => {
     setDraft(e.target.value);
     if (!socket || !active) return;
@@ -137,7 +141,7 @@ export default function Chat() {
     setSelectedMsg(null);
   };
 
-  // ✅ Socket listeners (new message + delete + typing)
+  // ✅ Listen for live socket updates
   useEffect(() => {
     if (!socket) return;
 
@@ -158,8 +162,8 @@ export default function Chat() {
       }
     };
 
-    const handleTyping = ({ from, typing }) => {
-      if (from !== user._id && typing) {
+    const handleTypingEvent = ({ from, typing }) => {
+      if (from !== user?._id && typing) {
         const typingUserObj = users.find((u) => u._id === from);
         if (typingUserObj) {
           setTypingUser(typingUserObj.name);
@@ -173,14 +177,31 @@ export default function Chat() {
 
     socket.on("message:new", handleNew);
     socket.on("message:deleted", handleDeleted);
-    socket.on("typing", handleTyping);
+    socket.on("typing", handleTypingEvent);
 
     return () => {
       socket.off("message:new", handleNew);
       socket.off("message:deleted", handleDeleted);
-      socket.off("typing", handleTyping);
+      socket.off("typing", handleTypingEvent);
     };
-  }, [socket, active?.conversationId, users]);
+  }, [socket, active?.conversationId, users, user?._id]);
+
+  // ✅ Fix: Wait until user loads (prevents left-alignment bug)
+  if (!user || !user._id) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Loading user session...</Typography>
+      </Box>
+    );
+  }
+
+  // ✅ Trigger re-render when user context updates
+  useEffect(() => {
+    if (user && user._id) {
+      setMessages((prev) => [...prev]);
+    }
+  }, [user]);
 
   if (loading && !messages.length) {
     return (
@@ -249,15 +270,17 @@ export default function Chat() {
           {messages.map((m, i) => (
             <Stack
               key={m._id || i}
-              alignItems={m.from === user._id ? "flex-end" : "flex-start"}
+              alignItems={
+                (m.from?._id || m.from) === user._id ? "flex-end" : "flex-start"
+              }
               sx={{ mb: 2 }}
             >
               <Box
                 className={`chat-bubble ${
-                  m.from === user._id ? "sent" : "received"
+                  (m.from?._id || m.from) === user._id ? "sent" : "received"
                 }`}
                 onClick={(e) => {
-                  if (m.from === user._id) {
+                  if ((m.from?._id || m.from) === user._id) {
                     setMenuAnchor(e.currentTarget);
                     setSelectedMsg(m);
                   }
@@ -274,6 +297,7 @@ export default function Chat() {
               </Box>
             </Stack>
           ))}
+
           {typingUser && (
             <Typography
               sx={{
@@ -287,6 +311,7 @@ export default function Chat() {
               🖊️ {typingUser} is typing...
             </Typography>
           )}
+
           <div ref={messagesEndRef} />
         </Box>
 
