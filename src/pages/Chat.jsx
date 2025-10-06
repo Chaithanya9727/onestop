@@ -11,9 +11,9 @@ import {
   TextField,
   IconButton,
   CircularProgress,
-  Badge,
   Menu,
   MenuItem,
+  Badge,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -32,10 +32,13 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedMsg, setSelectedMsg] = useState(null);
   const messagesEndRef = useRef(null);
 
+  // Auto scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -48,7 +51,7 @@ export default function Chat() {
         const list = await get("/users");
         setUsers(list.filter((u) => u._id !== user._id));
       } catch {
-        console.error("Failed to load users");
+        setError("Failed to load users");
       }
     })();
   }, [user]);
@@ -62,7 +65,7 @@ export default function Chat() {
       const res = await get(`/chat/${conv._id}/messages?limit=30`);
       setMessages(res.messages || []);
     } catch {
-      console.error("Failed to load conversation");
+      setError("Failed to load conversation");
     } finally {
       setLoading(false);
     }
@@ -102,14 +105,16 @@ export default function Chat() {
     setSelectedMsg(null);
   };
 
-  // Socket listeners
+  // Listen socket updates
   useEffect(() => {
     if (!socket) return;
+
     socket.on("message:new", ({ message }) => {
       if (message.conversation === active?.conversationId) {
         setMessages((m) => [...m, message]);
       }
     });
+
     socket.on("message:deleted", ({ messageId, mode }) => {
       if (mode === "everyone") {
         setMessages((msgs) =>
@@ -119,6 +124,7 @@ export default function Chat() {
         );
       }
     });
+
     return () => {
       socket.off("message:new");
       socket.off("message:deleted");
@@ -127,55 +133,29 @@ export default function Chat() {
 
   if (loading && !messages.length) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+      <Box className="chat-loading">
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box
-      sx={{
-        p: 1,
-        display: "grid",
-        gridTemplateColumns: { xs: "1fr", md: "300px 1fr" },
-        gap: 2,
-        height: "calc(100vh - 80px)",
-      }}
-    >
+    <Box className="chat-container">
       {/* Sidebar */}
-      <Paper
-        sx={{
-          p: 1,
-          overflowY: "auto",
-          borderRadius: 3,
-          height: "100%",
-          background: "#f7f8fa",
-        }}
-      >
-        <Typography
-          variant="h6"
-          sx={{ p: 1, fontWeight: "bold", textAlign: "center" }}
-        >
+      <Paper className="chat-sidebar">
+        <Typography variant="h6" className="sidebar-title">
           All Users
         </Typography>
-        <Divider sx={{ mb: 1 }} />
-        <List>
+        <Divider />
+        <List className="user-list">
           {users.map((u) => (
             <ListItemButton
               key={u._id}
               selected={active?._id === u._id}
               onClick={() => loadConversation(u)}
-              sx={{
-                py: 1.5,
-                borderRadius: 2,
-                mb: 1,
-                transition: "0.2s",
-                "&.Mui-selected": {
-                  bgcolor: "primary.main",
-                  color: "white",
-                },
-              }}
+              className={`user-item ${
+                active?._id === u._id ? "user-selected" : ""
+              }`}
             >
               <Badge
                 color="success"
@@ -183,87 +163,40 @@ export default function Chat() {
                 overlap="circular"
                 invisible={!u.online}
               >
-                <Avatar src={u.avatar} sx={{ mr: 2 }}>
+                <Avatar src={u.avatar} className="user-avatar">
                   {u.name[0]}
                 </Avatar>
               </Badge>
-              <Typography fontWeight="500" fontSize="0.95rem">
-                {u.name}
-              </Typography>
+              <Typography fontWeight="500">{u.name}</Typography>
             </ListItemButton>
           ))}
         </List>
       </Paper>
 
       {/* Chat Window */}
-      <Paper
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 3,
-          overflow: "hidden",
-          background: "#fafafa",
-        }}
-      >
-        {/* Header */}
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: "1px solid #ddd",
-            fontWeight: "bold",
-            bgcolor: "primary.main",
-            color: "white",
-            textAlign: "center",
-          }}
-        >
+      <Paper className="chat-window">
+        <Box className="chat-header">
           {active ? active.name : "Select a user"}
         </Box>
 
-        {/* Messages */}
-        <Box
-          sx={{
-            flex: 1,
-            p: { xs: 1.5, md: 2 },
-            overflowY: "auto",
-            background: "#ECE5DD",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
+        <Box className="chat-messages">
           {messages.map((m, i) => (
             <Stack
               key={m._id || i}
-              alignItems="center"
-              sx={{
-                mb: 1.5,
-                width: "100%",
-                display: "flex",
-                justifyContent: "center",
-              }}
+              className={`chat-bubble-wrapper ${
+                m.from === user._id ? "sent" : "received"
+              }`}
             >
               <Box
-                sx={{
-                  px: 2,
-                  py: 1,
-                  borderRadius: 3,
-                  maxWidth: "90%",
-                  backgroundColor: "white",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  position: "relative",
-                  textAlign: "center",
-                }}
+                className={`chat-bubble ${
+                  m.from === user._id ? "bubble-sent" : "bubble-received"
+                }`}
               >
                 <Typography>{m.body}</Typography>
                 {m.from === user._id && (
                   <IconButton
                     size="small"
-                    sx={{
-                      position: "absolute",
-                      top: -10,
-                      right: -10,
-                      background: "rgba(0,0,0,0.05)",
-                    }}
+                    className="msg-menu-btn"
                     onClick={(e) => {
                       setMenuAnchor(e.currentTarget);
                       setSelectedMsg(m);
@@ -273,11 +206,7 @@ export default function Chat() {
                   </IconButton>
                 )}
               </Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 0.3 }}
-              >
+              <Typography variant="caption" className="msg-time">
                 {new Date(m.createdAt).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -289,40 +218,17 @@ export default function Chat() {
           <div ref={messagesEndRef} />
         </Box>
 
-        {/* Input box */}
-        <Box
-          sx={{
-            p: 1,
-            display: "flex",
-            gap: 1,
-            borderTop: "1px solid #ddd",
-            bgcolor: "#f1f1f1",
-          }}
-        >
+        <Box className="chat-input-bar">
           <TextField
             size="small"
             fullWidth
-            placeholder="Type a message..."
+            placeholder="Type a message…"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            sx={{
-              bgcolor: "white",
-              borderRadius: 5,
-              "& .MuiOutlinedInput-root": { borderRadius: 5 },
-            }}
+            className="chat-input"
           />
-          <IconButton
-            color="primary"
-            onClick={sendMessage}
-            sx={{
-              bgcolor: "primary.main",
-              color: "white",
-              borderRadius: "50%",
-              width: 45,
-              height: 45,
-            }}
-          >
+          <IconButton className="send-btn" onClick={sendMessage}>
             <SendIcon />
           </IconButton>
         </Box>
