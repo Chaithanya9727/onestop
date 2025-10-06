@@ -14,8 +14,12 @@ import {
   Menu,
   MenuItem,
   Badge,
+  Drawer,
+  AppBar,
+  Toolbar,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import MenuIcon from "@mui/icons-material/Menu";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
@@ -36,9 +40,10 @@ export default function Chat() {
 
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedMsg, setSelectedMsg] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const messagesEndRef = useRef(null);
 
-  // Auto scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -64,6 +69,7 @@ export default function Chat() {
       setActive({ ...targetUser, conversationId: conv._id });
       const res = await get(`/chat/${conv._id}/messages?limit=30`);
       setMessages(res.messages || []);
+      setDrawerOpen(false); // close drawer on mobile
     } catch {
       setError("Failed to load conversation");
     } finally {
@@ -105,16 +111,14 @@ export default function Chat() {
     setSelectedMsg(null);
   };
 
-  // Listen socket updates
+  // Socket listeners
   useEffect(() => {
     if (!socket) return;
-
     socket.on("message:new", ({ message }) => {
       if (message.conversation === active?.conversationId) {
         setMessages((m) => [...m, message]);
       }
     });
-
     socket.on("message:deleted", ({ messageId, mode }) => {
       if (mode === "everyone") {
         setMessages((msgs) =>
@@ -124,7 +128,6 @@ export default function Chat() {
         );
       }
     });
-
     return () => {
       socket.off("message:new");
       socket.off("message:deleted");
@@ -141,8 +144,8 @@ export default function Chat() {
 
   return (
     <Box className="chat-container">
-      {/* Sidebar */}
-      <Paper className="chat-sidebar">
+      {/* Desktop Sidebar */}
+      <Paper className="chat-sidebar desktop-only">
         <Typography variant="h6" className="sidebar-title">
           All Users
         </Typography>
@@ -173,11 +176,65 @@ export default function Chat() {
         </List>
       </Paper>
 
+      {/* Mobile Drawer Sidebar */}
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
+        <Box sx={{ width: 260, p: 1 }}>
+          <Typography variant="h6" sx={{ p: 1, fontWeight: "bold" }}>
+            All Users
+          </Typography>
+          <Divider />
+          <List>
+            {users.map((u) => (
+              <ListItemButton
+                key={u._id}
+                onClick={() => loadConversation(u)}
+                selected={active?._id === u._id}
+              >
+                <Badge
+                  color="success"
+                  variant="dot"
+                  overlap="circular"
+                  invisible={!u.online}
+                >
+                  <Avatar src={u.avatar} sx={{ mr: 2 }}>
+                    {u.name[0]}
+                  </Avatar>
+                </Badge>
+                <Typography>{u.name}</Typography>
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+
       {/* Chat Window */}
       <Paper className="chat-window">
-        <Box className="chat-header">
-          {active ? active.name : "Select a user"}
-        </Box>
+        <AppBar position="static" sx={{ background: "#1565c0" }}>
+          <Toolbar
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              px: 2,
+            }}
+          >
+            {/* Mobile menu button */}
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => setDrawerOpen(true)}
+              className="mobile-only"
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              {active ? active.name : "Select a user"}
+            </Typography>
+          </Toolbar>
+        </AppBar>
 
         <Box className="chat-messages">
           {messages.map((m, i) => (
@@ -218,6 +275,7 @@ export default function Chat() {
           <div ref={messagesEndRef} />
         </Box>
 
+        {/* Input */}
         <Box className="chat-input-bar">
           <TextField
             size="small"
