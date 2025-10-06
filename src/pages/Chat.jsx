@@ -11,92 +11,80 @@ import {
   TextField,
   IconButton,
   CircularProgress,
-  Alert,
+  Badge,
   Menu,
   MenuItem,
-  Badge,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../socket";
-import '../styles.css'
+import "../styles.css";
 
 export default function Chat() {
   const { get, post } = useApi();
   const { user } = useAuth();
-  const { socket, isConnected } = useSocket();
+  const { socket } = useSocket();
 
   const [users, setUsers] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedMsg, setSelectedMsg] = useState(null);
-
   const messagesEndRef = useRef(null);
 
-  // ✅ Auto-scroll
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
   useEffect(scrollToBottom, [messages]);
 
-  // ✅ Load all users
+  // Load users
   useEffect(() => {
     (async () => {
       try {
         const list = await get("/users");
         setUsers(list.filter((u) => u._id !== user._id));
       } catch {
-        setError("Failed to load users");
+        console.error("Failed to load users");
       }
     })();
   }, [user]);
 
-  // ✅ Ensure conversation + load messages
+  // Load conversation
   const loadConversation = async (targetUser) => {
     try {
       setLoading(true);
       const conv = await post(`/chat/start/${targetUser._id}`);
       setActive({ ...targetUser, conversationId: conv._id });
-
       const res = await get(`/chat/${conv._id}/messages?limit=30`);
       setMessages(res.messages || []);
     } catch {
-      setError("Failed to load conversation");
+      console.error("Failed to load conversation");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Send message
+  // Send message
   const sendMessage = () => {
     if (!draft.trim() || !active) return;
-
     const payload = {
       conversationId: active.conversationId,
       to: active._id,
       body: draft.trim(),
     };
-
     socket.emit("message:send", payload, (ack) => {
-      if (ack?.ok) {
-        setMessages((m) => [...m, ack.message]);
-      }
+      if (ack?.ok) setMessages((m) => [...m, ack.message]);
     });
-
     setDraft("");
   };
 
-  // ✅ Delete message
+  // Delete message
   const handleDelete = (mode) => {
     if (!selectedMsg) return;
-
     socket.emit("message:delete", { messageId: selectedMsg._id, mode }, (ack) => {
       if (ack?.ok) {
         if (mode === "me") {
@@ -110,21 +98,18 @@ export default function Chat() {
         }
       }
     });
-
     setMenuAnchor(null);
     setSelectedMsg(null);
   };
 
-  // ✅ Listen socket updates
+  // Socket listeners
   useEffect(() => {
     if (!socket) return;
-
     socket.on("message:new", ({ message }) => {
       if (message.conversation === active?.conversationId) {
         setMessages((m) => [...m, message]);
       }
     });
-
     socket.on("message:deleted", ({ messageId, mode }) => {
       if (mode === "everyone") {
         setMessages((msgs) =>
@@ -134,7 +119,6 @@ export default function Chat() {
         );
       }
     });
-
     return () => {
       socket.off("message:new");
       socket.off("message:deleted");
@@ -152,19 +136,30 @@ export default function Chat() {
   return (
     <Box
       sx={{
-        p: 2,
+        p: 1,
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", md: "280px 1fr" },
+        gridTemplateColumns: { xs: "1fr", md: "300px 1fr" },
         gap: 2,
-        height: "calc(100vh - 100px)",
+        height: "calc(100vh - 80px)",
       }}
     >
       {/* Sidebar */}
-      <Paper sx={{ p: 1, overflow: "auto" }}>
-        <Typography variant="h6" sx={{ p: 1, fontWeight: "bold" }}>
+      <Paper
+        sx={{
+          p: 1,
+          overflowY: "auto",
+          borderRadius: 3,
+          height: "100%",
+          background: "#f7f8fa",
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{ p: 1, fontWeight: "bold", textAlign: "center" }}
+        >
           All Users
         </Typography>
-        <Divider />
+        <Divider sx={{ mb: 1 }} />
         <List>
           {users.map((u) => (
             <ListItemButton
@@ -175,10 +170,10 @@ export default function Chat() {
                 py: 1.5,
                 borderRadius: 2,
                 mb: 1,
+                transition: "0.2s",
                 "&.Mui-selected": {
-                  bgcolor: "primary.light",
+                  bgcolor: "primary.main",
                   color: "white",
-                  "& .MuiTypography-root": { color: "white" },
                 },
               }}
             >
@@ -192,7 +187,9 @@ export default function Chat() {
                   {u.name[0]}
                 </Avatar>
               </Badge>
-              <Typography fontWeight="medium">{u.name}</Typography>
+              <Typography fontWeight="500" fontSize="0.95rem">
+                {u.name}
+              </Typography>
             </ListItemButton>
           ))}
         </List>
@@ -205,52 +202,68 @@ export default function Chat() {
           flexDirection: "column",
           borderRadius: 3,
           overflow: "hidden",
+          background: "#fafafa",
         }}
       >
+        {/* Header */}
         <Box
           sx={{
             p: 2,
-            borderBottom: "1px solid #eee",
+            borderBottom: "1px solid #ddd",
             fontWeight: "bold",
             bgcolor: "primary.main",
             color: "white",
+            textAlign: "center",
           }}
         >
           {active ? active.name : "Select a user"}
         </Box>
 
+        {/* Messages */}
         <Box
           sx={{
             flex: 1,
-            p: 2,
+            p: { xs: 1.5, md: 2 },
             overflowY: "auto",
-            background: "#e5ddd5", // WhatsApp-like
+            background: "#ECE5DD",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
           }}
         >
           {messages.map((m, i) => (
             <Stack
               key={m._id || i}
-              alignItems={m.from === user._id ? "flex-end" : "flex-start"}
-              sx={{ mb: 2 }}
+              alignItems="center"
+              sx={{
+                mb: 1.5,
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+              }}
             >
               <Box
                 sx={{
-                  position: "relative",
                   px: 2,
                   py: 1,
                   borderRadius: 3,
-                  maxWidth: "70%",
-                  boxShadow: 2,
-                  backgroundColor:
-                    m.from === user._id ? "#DCF8C6" : "white",
-                  color: "black",
+                  maxWidth: "90%",
+                  backgroundColor: "white",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                  position: "relative",
+                  textAlign: "center",
                 }}
               >
                 <Typography>{m.body}</Typography>
                 {m.from === user._id && (
                   <IconButton
                     size="small"
-                    sx={{ position: "absolute", top: -10, right: -10 }}
+                    sx={{
+                      position: "absolute",
+                      top: -10,
+                      right: -10,
+                      background: "rgba(0,0,0,0.05)",
+                    }}
                     onClick={(e) => {
                       setMenuAnchor(e.currentTarget);
                       setSelectedMsg(m);
@@ -260,7 +273,11 @@ export default function Chat() {
                   </IconButton>
                 )}
               </Box>
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mt: 0.3 }}
+              >
                 {new Date(m.createdAt).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -272,35 +289,46 @@ export default function Chat() {
           <div ref={messagesEndRef} />
         </Box>
 
+        {/* Input box */}
         <Box
           sx={{
             p: 1,
             display: "flex",
             gap: 1,
-            borderTop: "1px solid #eee",
-            background: "#f0f0f0",
+            borderTop: "1px solid #ddd",
+            bgcolor: "#f1f1f1",
           }}
         >
           <TextField
             size="small"
             fullWidth
-            placeholder="Type a message…"
+            placeholder="Type a message..."
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            sx={{ bgcolor: "white", borderRadius: 2 }}
+            sx={{
+              bgcolor: "white",
+              borderRadius: 5,
+              "& .MuiOutlinedInput-root": { borderRadius: 5 },
+            }}
           />
           <IconButton
             color="primary"
             onClick={sendMessage}
-            sx={{ bgcolor: "primary.main", color: "white" }}
+            sx={{
+              bgcolor: "primary.main",
+              color: "white",
+              borderRadius: "50%",
+              width: 45,
+              height: 45,
+            }}
           >
             <SendIcon />
           </IconButton>
         </Box>
       </Paper>
 
-      {/* Delete menu */}
+      {/* Delete Menu */}
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
