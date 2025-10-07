@@ -17,7 +17,8 @@ import Contact from "./pages/Contact.jsx";
 import Events from "./pages/Events.jsx";
 import Chat from "./pages/Chat.jsx"; // ✅ Chat page
 import { SocketProvider } from "./socket.jsx"; // ✅ Named import for the provider
-
+import VerifyOtp from "./pages/verifyOtp.jsx";
+import OauthSuccess from "./pages/OauthSuccess";
 
 export default function App() {
   return (
@@ -36,6 +37,9 @@ export default function App() {
               </GuestRoute>
             }
           />
+          <Route path="/verify-otp" element={<VerifyOtp /> } /> 
+          <Route path="/oauth-success" element={<OauthSuccess />} />
+
           <Route
             path="/login"
             element={

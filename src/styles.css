@@ -395,3 +395,55 @@ body {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
 }
+
+/* =====================================
+   🌟 AUTH PAGE ENHANCEMENTS
+   ===================================== */
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90vh;
+  background: linear-gradient(120deg, #1e3c72, #2a5298);
+  padding: 20px;
+}
+
+.auth-form {
+  max-width: 420px;
+  width: 100%;
+  padding: 32px;
+  border-radius: 16px !important;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.auth-form .MuiTextField-root {
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.auth-divider {
+  margin: 20px 0 !important;
+  font-weight: bold;
+  color: #777;
+}
+
+.auth-link {
+  color: #1565c0;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+  color: #0b4da8;
+}
+
+@media (max-width: 600px) {
+  .auth-form {
+    padding: 20px;
+    max-width: 95%;
+  }
+}

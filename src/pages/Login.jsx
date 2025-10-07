@@ -1,106 +1,162 @@
-import { useState, useEffect } from "react"
+import { useState } from "react";
 import {
-  Box,
   TextField,
   Button,
   Typography,
-  Alert,
   Paper,
-  Link,
-} from "@mui/material"
-import { useNavigate, Link as RouterLink } from "react-router-dom"
-import useApi from "../hooks/useApi"
-import { useAuth } from "../context/AuthContext"
-import '../styles.css'
+  FormControlLabel,
+  Checkbox,
+  IconButton,
+  InputAdornment,
+  Stack,
+  Divider,
+  Alert,
+} from "@mui/material";
+import { Visibility, VisibilityOff, Google, GitHub } from "@mui/icons-material";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import "../styles.css";
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { user, setUser, setRole, setToken } = useAuth()
-  const { post } = useApi()
+  const navigate = useNavigate();
+  const { setToken } = useAuth();
 
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [err, setErr] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    remember: false,
+  });
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // 🔒 If already logged in → redirect to dashboard
-  useEffect(() => {
-    if (user) {
-      navigate("/dashboard")
-    }
-  }, [user, navigate])
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setErr("")
-    setLoading(true)
+    e.preventDefault();
+    setErr("");
+    setMsg("");
+    setLoading(true);
     try {
-      const data = await post("/auth/login", { email, password })
+      const res = await fetch("https://server-hv9f.onrender.com/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
 
-      // ✅ Save auth info
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("user", JSON.stringify(data))
-
-      setUser(data)
-      setRole(data.role)
-      setToken(data.token)
-
-      navigate("/dashboard")
+      setToken(data.token);
+      setMsg("✅ Login successful! Redirecting...");
+      if (form.remember) localStorage.setItem("email", form.email);
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (error) {
-      setErr(error.message || "Login failed")
+      setErr(error.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
-      <Paper sx={{ p: 4, width: 400 }}>
-        <Typography variant="h5" gutterBottom>
-          Login
+    <div className="auth-wrap">
+      <Paper className="auth">
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          🔐 Welcome Back
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2, color: "#555" }}>
+          Login to continue your journey with OneStop Hub 🚀
         </Typography>
 
+        {msg && <Alert severity="success">{msg}</Alert>}
         {err && <Alert severity="error">{err}</Alert>}
 
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{ mt: 2, display: "grid", gap: 2 }}
-        >
+        <form onSubmit={handleSubmit}>
           <TextField
-            type="email"
+            fullWidth
             label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            name="email"
+            value={form.email}
+            onChange={handleChange}
             required
+            margin="normal"
           />
+
           <TextField
-            type="password"
+            fullWidth
             label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            name="password"
+            type={showPassword ? "text" : "password"}
+            value={form.password}
+            onChange={handleChange}
             required
+            margin="normal"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
-          <Button type="submit" variant="contained" disabled={loading}>
+
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ mt: 1 }}
+          >
+            <FormControlLabel
+              control={<Checkbox name="remember" checked={form.remember} onChange={handleChange} />}
+              label="Remember Me"
+            />
+            <Link to="/forgot-password" className="auth-link">
+              Forgot Password?
+            </Link>
+          </Stack>
+
+          <Button
+            fullWidth
+            type="submit"
+            variant="contained"
+            sx={{ mt: 2 }}
+            disabled={loading}
+          >
             {loading ? "Logging in..." : "Login"}
           </Button>
-        </Box>
+        </form>
 
-        {/* Forgot Password Link */}
-        <Typography sx={{ mt: 2 }}>
-          <Link component={RouterLink} to="/forgot-password">
-            Forgot Password?
-          </Link>
-        </Typography>
+        <Divider className="auth-divider">OR</Divider>
 
-        {/* Register link */}
-        <Typography sx={{ mt: 2 }}>
-          Don’t have an account?{" "}
-          <Link component={RouterLink} to="/register">
-            Register here
-          </Link>
-        </Typography>
+        <Stack direction="row" spacing={2} justifyContent="center">
+          <Button variant="outlined" startIcon={<Google />} fullWidth>
+            Google Login
+          </Button>
+          <Button variant="outlined" startIcon={<GitHub />} fullWidth>
+            GitHub Login
+          </Button>
+        </Stack>
+
+        <Stack spacing={1} mt={3} textAlign="center">
+          <Typography variant="body2">
+            Don’t have an account?{" "}
+            <Link to="/register" className="auth-link">
+              Create one
+            </Link>
+          </Typography>
+        </Stack>
       </Paper>
-    </Box>
-  )
+    </div>
+  );
 }

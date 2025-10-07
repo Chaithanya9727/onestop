@@ -1,119 +1,149 @@
-import { useState } from "react"
+import { useState } from "react";
 import {
-  Box,
   TextField,
   Button,
   Typography,
-  Alert,
   Paper,
   MenuItem,
-} from "@mui/material"
-import { useNavigate } from "react-router-dom"
-import useApi from "../hooks/useApi"
-import { useAuth } from "../context/AuthContext"
-import '../styles.css'
+  FormControlLabel,
+  Checkbox,
+  Stack,
+  Divider,
+  Alert,
+} from "@mui/material";
+import { Google, GitHub } from "@mui/icons-material";
+import { Link, useNavigate } from "react-router-dom";
+import "../styles.css";
 
 export default function Register() {
-  const navigate = useNavigate()
-  const { setUser, setRole, setToken } = useAuth()
-  const { post } = useApi()
+  const navigate = useNavigate();
 
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [role, setRegisterRole] = useState("student")
-  const [err, setErr] = useState("")
-  const [success, setSuccess] = useState("")
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+    college: "",
+    year: "",
+    branch: "",
+    mobile: "",
+    internship: "No",
+    agree: false,
+  });
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setErr("")
-    setSuccess("")
+    e.preventDefault();
+    setMsg("");
+    setErr("");
 
-    // ✅ Frontend password validation
-    if (password.length < 6) {
-      setErr("Password must be at least 6 characters long.")
-      return
-    }
+    if (!form.agree) return setErr("You must agree to the terms.");
+    if (form.password !== form.confirm)
+      return setErr("Passwords do not match.");
 
     try {
-      const data = await post("/auth/register", {
-        name,
-        email,
-        password,
-        role,
-      })
+      const res = await fetch("https://server-hv9f.onrender.com/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
 
-      // Update AuthContext
-      setUser({
-        _id: data._id,
-        name: data.name,
-        email: data.email,
-        role: data.role,
-      })
-      setRole(data.role)
-      setToken(data.token)
-
-      setSuccess("Registration successful 🎉 Redirecting...")
-      setTimeout(() => navigate("/dashboard"), 1500)
+      if (!res.ok) throw new Error(data.message);
+      setMsg("Account created successfully ✅");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (error) {
-      setErr("Registration failed. Try again.")
+      setErr(error.message);
     }
-  }
+  };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
-      <Paper sx={{ p: 4, width: 400 }}>
-        <Typography variant="h5" gutterBottom>
-          Create Account
+    <div className="auth-page">
+      <Paper className="auth-form" elevation={4}>
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          🧾 Create Account
         </Typography>
 
         {err && <Alert severity="error">{err}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
+        {msg && <Alert severity="success">{msg}</Alert>}
 
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{ mt: 2, display: "grid", gap: 2 }}
-        >
-          <TextField
-            label="Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <TextField
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <TextField
-            type="password"
-            label="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            helperText="Must be at least 6 characters"
-          />
-
-          <TextField
-            select
-            label="Role"
-            value={role}
-            onChange={(e) => setRegisterRole(e.target.value)}
-          >
-            <MenuItem value="student">Student</MenuItem>
-            <MenuItem value="guest">Guest</MenuItem>
-            <MenuItem value="admin">Admin</MenuItem>
+        <form onSubmit={handleSubmit}>
+          <TextField fullWidth label="Full Name" name="name" value={form.name} onChange={handleChange} required margin="normal" />
+          <TextField fullWidth label="Email" name="email" value={form.email} onChange={handleChange} required margin="normal" />
+          <TextField select fullWidth label="College / University" name="college" value={form.college} onChange={handleChange} required margin="normal">
+            <MenuItem value="NIT Warangal">NIT Warangal</MenuItem>
+            <MenuItem value="IIT Hyderabad">IIT Hyderabad</MenuItem>
+            <MenuItem value="SR University">SR University</MenuItem>
           </TextField>
+          <TextField select fullWidth label="Year of Study" name="year" value={form.year} onChange={handleChange} required margin="normal">
+            <MenuItem value="1st Year">1st Year</MenuItem>
+            <MenuItem value="2nd Year">2nd Year</MenuItem>
+            <MenuItem value="3rd Year">3rd Year</MenuItem>
+            <MenuItem value="4th Year">4th Year</MenuItem>
+          </TextField>
+          <TextField select fullWidth label="Branch" name="branch" value={form.branch} onChange={handleChange} required margin="normal">
+            <MenuItem value="CSE">CSE</MenuItem>
+            <MenuItem value="ECE">ECE</MenuItem>
+            <MenuItem value="EEE">EEE</MenuItem>
+            <MenuItem value="Mechanical">Mechanical</MenuItem>
+          </TextField>
+          <TextField fullWidth label="Mobile Number" name="mobile" value={form.mobile} onChange={handleChange} required margin="normal" />
+          <TextField select fullWidth label="Internship Status" name="internship" value={form.internship} onChange={handleChange} required margin="normal">
+            <MenuItem value="Yes">Yes</MenuItem>
+            <MenuItem value="No">No</MenuItem>
+          </TextField>
+          <TextField fullWidth label="Password" name="password" type="password" value={form.password} onChange={handleChange} required margin="normal" />
+          <TextField fullWidth label="Confirm Password" name="confirm" type="password" value={form.confirm} onChange={handleChange} required margin="normal" />
 
-          <Button type="submit" variant="contained">
-            Register
+          <FormControlLabel
+            control={<Checkbox name="agree" checked={form.agree} onChange={handleChange} />}
+            label="I Agree to the Terms & Conditions"
+          />
+
+          <Button fullWidth variant="contained" type="submit" sx={{ mt: 1 }}>
+            Create Account
           </Button>
-        </Box>
+        </form>
+
+        <Divider className="auth-divider">OR</Divider>
+
+        <Stack direction="row" spacing={2} justifyContent="center">
+          <Button
+            variant="outlined"
+            startIcon={<Google />}
+            fullWidth
+            onClick={() => (window.location.href = "https://server-hv9f.onrender.com/api/auth/google")}
+          >
+            Google Sign Up
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<GitHub />}
+            fullWidth
+            onClick={() => (window.location.href = "https://server-hv9f.onrender.com/api/auth/github")}
+          >
+            GitHub Sign Up
+          </Button>
+        </Stack>
+
+        <Stack spacing={1} mt={3} textAlign="center">
+          <Typography variant="body2">
+            Already have an account?{" "}
+            <Link to="/login" className="auth-link">
+              Login
+            </Link>
+          </Typography>
+        </Stack>
       </Paper>
-    </Box>
-  )
+    </div>
+  );
 }
