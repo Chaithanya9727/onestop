@@ -12,14 +12,15 @@ import { useAuth } from "./context/AuthContext";
 const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected"); // "disconnected", "connecting", "connected", "error"
 
-  // ✅ Choose backend URL dynamically (Render)
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://server-hv9f.onrender.com";
+  // ✅ Choose backend URL dynamically (Render/Local)
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
+  // ✅ Initialize socket when token is available
   const socket = useMemo(() => {
     if (!token) {
       console.log("🔑 No token available, skipping socket creation");
@@ -57,6 +58,11 @@ export function SocketProvider({ children }) {
       setIsConnected(true);
       setConnectionStatus("connected");
       socketRef.current = socket;
+
+      // 🧠 Emit presence when user connects
+      if (user?._id) {
+        socket.emit("presence:online", { userId: user._id, role: user.role });
+      }
     };
 
     const handleDisconnect = (reason) => {
@@ -72,7 +78,7 @@ export function SocketProvider({ children }) {
     };
 
     const handleConnectError = (error) => {
-      console.error("🚨 Socket connection error:", error);
+      console.error("🚨 Socket connection error:", error.message);
       setIsConnected(false);
       setConnectionStatus("error");
     };
@@ -81,10 +87,15 @@ export function SocketProvider({ children }) {
       console.log("🔄 Socket reconnected after", attempt, "attempts");
       setIsConnected(true);
       setConnectionStatus("connected");
+
+      // 🧠 Re-emit presence after reconnect
+      if (user?._id) {
+        socket.emit("presence:online", { userId: user._id, role: user.role });
+      }
     };
 
     const handleReconnectAttempt = (attempt) => {
-      console.log("🔄 Socket reconnection attempt:", attempt);
+      console.log("🔁 Socket reconnection attempt:", attempt);
       setConnectionStatus("connecting");
     };
 
@@ -112,8 +123,11 @@ export function SocketProvider({ children }) {
       console.log("👥 Presence update:", data);
     });
 
+    // 💬 Message events for real-time alerts
     socket.on("message:new", (data) => {
       console.log("💬 New message received:", data);
+      // 🔔 Broadcast event to frontend (Navbar badge, etc.)
+      window.dispatchEvent(new CustomEvent("socket:newMessage", { detail: data }));
     });
 
     socket.on("message:update", (data) => {
@@ -129,6 +143,7 @@ export function SocketProvider({ children }) {
       socket.connect();
     }
 
+    // ✅ Cleanup
     return () => {
       console.log("🧹 Cleaning up socket connection and listeners");
       socket.off("connect", handleConnect);
@@ -152,10 +167,12 @@ export function SocketProvider({ children }) {
       setIsConnected(false);
       setConnectionStatus("disconnected");
     };
-  }, [socket]);
+  }, [socket, user]);
 
   useEffect(() => {
-    console.log(`🔍 Socket connection status: ${connectionStatus}, Connected: ${isConnected}`);
+    console.log(
+      `🔍 Socket connection status: ${connectionStatus}, Connected: ${isConnected}`
+    );
   }, [connectionStatus, isConnected]);
 
   const contextValue = {
@@ -171,7 +188,7 @@ export function SocketProvider({ children }) {
   );
 }
 
-// ✅ Hook for using socket
+// ✅ Hook for using socket globally
 export const useSocket = () => {
   const context = useContext(SocketContext);
 
@@ -191,6 +208,7 @@ export const useSocket = () => {
     }
   }, [socket, isConnected]);
 
+  // 📨 Send message
   const sendMessage = (payload, callback) => {
     if (!socket || !isConnected) {
       console.error("🚨 Cannot send message: Socket not connected");
@@ -205,6 +223,7 @@ export const useSocket = () => {
     });
   };
 
+  // ✅ Mark message (read/delivered)
   const markMessage = (messageId, status) => {
     if (!socket || !isConnected) {
       console.error("🚨 Cannot mark message: Socket not connected");
@@ -215,6 +234,7 @@ export const useSocket = () => {
     socket.emit("message:mark", { messageId, status });
   };
 
+  // ✅ Typing event
   const sendTyping = (to, conversationId, typing = true) => {
     if (!socket || !isConnected) {
       console.error("🚨 Cannot send typing indicator: Socket not connected");

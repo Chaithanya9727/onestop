@@ -17,7 +17,7 @@ import useApi from "../hooks/useApi";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import '../styles.css'
+// import "../styles.css";
 
 export default function Events() {
   const { get, post, put, del } = useApi();
@@ -28,23 +28,26 @@ export default function Events() {
   const [err, setErr] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Admin form states
+  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
   const [editId, setEditId] = useState(null);
 
-  // Filters
+  // Filters + view
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
-
-  // Toggle view: list or calendar
   const [viewMode, setViewMode] = useState("list");
 
   const pageSize = 6;
 
+  // ✅ role checks
+  const isAdmin = role?.toLowerCase() === "admin";
+  const isSuperAdmin = role?.toLowerCase() === "superadmin";
+
+  // Load events
   const load = async () => {
     try {
       setLoading(true);
@@ -81,11 +84,11 @@ export default function Events() {
       setPage(1);
       load();
     } catch {
-      setErr("Failed to create event");
+      setErr("Failed to create event (Admins only)");
     }
   };
 
-  // ✏️ Update event
+  // ✏️ Save edited event
   const saveEdit = async (e) => {
     e.preventDefault();
     try {
@@ -106,7 +109,7 @@ export default function Events() {
       setEvents((prev) => prev.filter((ev) => ev._id !== id));
       setSuccess("Event deleted ❌");
     } catch {
-      alert("Delete failed");
+      alert("Delete failed (Admins only)");
     }
   };
 
@@ -134,8 +137,8 @@ export default function Events() {
       {err && <Alert severity="error">{err}</Alert>}
       {success && <Alert severity="success">{success}</Alert>}
 
-      {/* Admin Form */}
-      {role === "admin" && (
+      {/* 🧾 Admin + SuperAdmin Form */}
+      {(isAdmin || isSuperAdmin) && (
         <Paper sx={{ p: 3, mb: 4 }}>
           <Typography variant="h6">
             {editId ? "✏️ Edit Event" : "➕ Add Event"}
@@ -186,7 +189,7 @@ export default function Events() {
         </Paper>
       )}
 
-      {/* 🔍 Search Bar + View Toggle */}
+      {/* 🔍 Search + Toggle */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
@@ -221,7 +224,7 @@ export default function Events() {
         </Stack>
       </Paper>
 
-      {/* Events View */}
+      {/* 📋 List / 📆 Calendar View */}
       {viewMode === "list" ? (
         <>
           {events.length === 0 ? (
@@ -237,7 +240,7 @@ export default function Events() {
                     </Typography>
                     <Typography sx={{ mt: 1 }}>{ev.description}</Typography>
 
-                    {role === "admin" && (
+                    {(isAdmin || isSuperAdmin) && (
                       <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
                         <Button
                           variant="outlined"
@@ -303,7 +306,10 @@ export default function Events() {
               id: ev._id,
               title: ev.title,
               start: ev.date,
-              extendedProps: { location: ev.location, description: ev.description },
+              extendedProps: {
+                location: ev.location,
+                description: ev.description,
+              },
             }))}
             eventContent={(arg) => (
               <div>

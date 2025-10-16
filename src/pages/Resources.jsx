@@ -14,7 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import useApi from "../hooks/useApi";
 import { useLocation, useNavigate } from "react-router-dom";
 import ResourceCard from "../components/ResourceCard";
-import '../styles.css'
+// import "../styles.css";
 
 export default function Resources() {
   const { user, role } = useAuth();
@@ -27,7 +27,7 @@ export default function Resources() {
   const [description, setDescription] = useState("");
   const [type, setType] = useState("note");
   const [url, setUrl] = useState("");
-  const [file, setFile] = useState(null); // ✅ new
+  const [file, setFile] = useState(null);
   const [err, setErr] = useState("");
   const [success, setSuccess] = useState("");
   const [editId, setEditId] = useState(null);
@@ -43,21 +43,30 @@ export default function Resources() {
   const queryParams = new URLSearchParams(location.search);
   const filter = queryParams.get("filter");
 
+  // ✅ Role-based access flags
+  const iscandidate = role?.toLowerCase() === "candidate";
+  const isAdmin = role?.toLowerCase() === "admin";
+  const isSuperAdmin = role?.toLowerCase() === "superadmin";
+  const canManage = iscandidate || isAdmin || isSuperAdmin;
+
   const load = async (reset = false) => {
     try {
       const data = await get(
         `/resources?search=${encodeURIComponent(search)}&type=${filterType}&page=${page}&limit=6`
       );
 
-      let resources = data.resources;
+      let resources = data.resources || [];
 
+      // Show only personal resources if ?filter=my
       if (filter === "my" && user) {
-        resources = resources.filter((r) => r.user?._id === user._id);
+        resources = resources.filter((r) => r.createdBy?._id === user._id);
       }
 
       setList((prev) => (reset ? resources : [...prev, ...resources]));
       setHasMore(page < data.pages);
-    } catch {
+      setErr("");
+    } catch (err) {
+      console.error("Failed to load resources", err);
       setErr("Failed to load resources");
     }
   };
@@ -85,7 +94,7 @@ export default function Resources() {
       if (url) formData.append("url", url);
       if (file) formData.append("file", file);
 
-      await post("/resources", formData, true); // ✅ multipart
+      await post("/resources", formData, true);
 
       setTitle("");
       setDescription("");
@@ -96,16 +105,18 @@ export default function Resources() {
       setPage(1);
       load(true);
     } catch {
-      setErr("Create failed (students/admins only)");
+      setErr("Create failed (candidates/admins/superadmin only)");
     }
   };
 
   const remove = async (id) => {
+    if (!window.confirm("Delete this resource?")) return;
     try {
       await del(`/resources/${id}`);
       setList((prev) => prev.filter((x) => x._id !== id));
+      setSuccess("Resource deleted ❌");
     } catch {
-      alert("Delete failed (admin only)");
+      alert("Delete failed (Admin or SuperAdmin only)");
     }
   };
 
@@ -133,7 +144,7 @@ export default function Resources() {
       setSuccess("Resource updated ✅");
       cancelEdit();
     } catch {
-      setErr("Update failed");
+      setErr("Update failed (candidates/admins/superadmin only)");
     }
   };
 
@@ -147,11 +158,8 @@ export default function Resources() {
   };
 
   const handleToggle = () => {
-    if (filter === "my") {
-      navigate("/resources");
-    } else {
-      navigate("/resources?filter=my");
-    }
+    if (filter === "my") navigate("/resources");
+    else navigate("/resources?filter=my");
   };
 
   return (
@@ -166,7 +174,7 @@ export default function Resources() {
           {filter === "my" ? "My Resources" : "Resources"}
         </Typography>
 
-        {user && (role === "student" || role === "admin") && (
+        {user && canManage && (
           <Button variant="outlined" onClick={handleToggle}>
             {filter === "my" ? "Show All" : "Show My Resources"}
           </Button>
@@ -198,11 +206,15 @@ export default function Resources() {
         </TextField>
       </Stack>
 
-      {/* ➕ Add form */}
-      {user && (role === "student" || role === "admin") && filter !== "my" && !editId && (
+      {/* ➕ Add Resource (candidate/Admin/SuperAdmin) */}
+      {user && canManage && filter !== "my" && !editId && (
         <Paper sx={{ p: 3, mb: 4 }}>
           <Typography variant="h6">Add Resource</Typography>
-          <Box component="form" onSubmit={create} sx={{ mt: 2, display: "grid", gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={create}
+            sx={{ mt: 2, display: "grid", gap: 2 }}
+          >
             <TextField
               label="Title"
               value={title}
@@ -225,12 +237,12 @@ export default function Resources() {
               <MenuItem value="link">Link</MenuItem>
             </TextField>
 
-            {/* URL or File */}
             <TextField
               label="URL (optional if uploading file)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
+
             <Button variant="outlined" component="label">
               {file ? `File: ${file.name}` : "Upload File"}
               <input
@@ -248,11 +260,15 @@ export default function Resources() {
         </Paper>
       )}
 
-      {/* ✏️ Edit form */}
+      {/* ✏️ Edit Resource */}
       {editId && (
         <Paper sx={{ p: 3, mb: 4 }}>
           <Typography variant="h6">Edit Resource</Typography>
-          <Box component="form" onSubmit={saveEdit} sx={{ mt: 2, display: "grid", gap: 2 }}>
+          <Box
+            component="form"
+            onSubmit={saveEdit}
+            sx={{ mt: 2, display: "grid", gap: 2 }}
+          >
             <TextField
               label="Title"
               value={title}
@@ -300,7 +316,7 @@ export default function Resources() {
         </Paper>
       )}
 
-      {/* 📂 Resource list */}
+      {/* 📂 Resource List */}
       <Grid container spacing={2}>
         {list.map((r) => (
           <Grid item xs={12} md={6} lg={4} key={r._id}>

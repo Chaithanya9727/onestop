@@ -1,65 +1,64 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import BackgroundGlow from "../components/BackgroundGlow.jsx";
 import {
+  Card,
+  CardContent,
   TextField,
   Button,
   Typography,
-  Paper,
-  FormControlLabel,
-  Checkbox,
+  CircularProgress,
+  Divider,
+  Stack,
+  Box,
   IconButton,
   InputAdornment,
-  Stack,
-  Divider,
-  Alert,
 } from "@mui/material";
-import { Visibility, VisibilityOff, Google, GitHub } from "@mui/icons-material";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import "../styles.css";
+import { Visibility, VisibilityOff, GitHub, Google, Email } from "@mui/icons-material";
+import { motion } from "framer-motion";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setToken } = useAuth();
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    remember: false,
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  // ✅ Auto-accept token after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+    if (token) {
+      setToken(token);
+      navigate("/dashboard"); // redirect after OAuth login
+    }
+  }, [location.search]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setErr("");
     setMsg("");
-    setLoading(true);
     try {
-      const res = await fetch("https://server-hv9f.onrender.com/api/auth/login", {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-        }),
+        body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
+      if (!res.ok) throw new Error(data.message || "Login failed");
       setToken(data.token);
       setMsg("✅ Login successful! Redirecting...");
-      if (form.remember) localStorage.setItem("email", form.email);
-      setTimeout(() => navigate("/dashboard"), 1500);
+      setTimeout(() => navigate("/dashboard"), 1000);
     } catch (error) {
       setErr(error.message);
     } finally {
@@ -67,96 +66,132 @@ export default function Login() {
     }
   };
 
+  const handleOAuth = (provider) => {
+    window.location.href = `http://localhost:5000/api/auth/${provider}`;
+  };
+
   return (
-    <div className="auth-wrap">
-      <Paper className="auth">
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          🔐 Welcome Back
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2, color: "#555" }}>
-          Login to continue your journey with OneStop Hub 🚀
-        </Typography>
+    <motion.section
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #eef2ff, #f7f8ff)",
+        padding: "30px",
+        position: "relative",
+      }}
+    >
+      <BackgroundGlow />
+      <Card
+        sx={{
+          maxWidth: 420,
+          width: "100%",
+          borderRadius: 4,
+          boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <CardContent>
+          <Typography variant="h4" textAlign="center" fontWeight={700} gutterBottom>
+            🔐 Login to OneStop Hub
+          </Typography>
 
-        {msg && <Alert severity="success">{msg}</Alert>}
-        {err && <Alert severity="error">{err}</Alert>}
+          {msg && <Typography color="green" textAlign="center">{msg}</Typography>}
+          {err && <Typography color="red" textAlign="center">{err}</Typography>}
 
-        <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-            margin="normal"
-          />
+          <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              margin="normal"
+              required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Email color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+            />
 
-          <TextField
-            fullWidth
-            label="Password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            value={form.password}
-            onChange={handleChange}
-            required
-            margin="normal"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+            <TextField
+              fullWidth
+              label="Password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={handleChange}
+              margin="normal"
+              required
+              InputProps={{
+                endAdornment: (
+                  <IconButton onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ mt: 1 }}
-          >
-            <FormControlLabel
-              control={<Checkbox name="remember" checked={form.remember} onChange={handleChange} />}
-              label="Remember Me"
+                ),
+              }}
             />
-            <Link to="/forgot-password" className="auth-link">
-              Forgot Password?
-            </Link>
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{
+                py: 1.3,
+                mt: 2,
+                fontWeight: 600,
+                background: "linear-gradient(135deg, #667eea, #764ba2)",
+              }}
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
+            </Button>
+          </form>
+
+          <Divider sx={{ my: 3 }}>OR</Divider>
+
+          <Stack spacing={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Google />}
+              onClick={() => handleOAuth("google")}
+            >
+              Continue with Google
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<GitHub />}
+              onClick={() => handleOAuth("github")}
+            >
+              Continue with GitHub
+            </Button>
           </Stack>
 
-          <Button
-            fullWidth
-            type="submit"
-            variant="contained"
-            sx={{ mt: 2 }}
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </Button>
-        </form>
-
-        <Divider className="auth-divider">OR</Divider>
-
-        <Stack direction="row" spacing={2} justifyContent="center">
-          <Button variant="outlined" startIcon={<Google />} fullWidth>
-            Google Login
-          </Button>
-          <Button variant="outlined" startIcon={<GitHub />} fullWidth>
-            GitHub Login
-          </Button>
-        </Stack>
-
-        <Stack spacing={1} mt={3} textAlign="center">
-          <Typography variant="body2">
-            Don’t have an account?{" "}
-            <Link to="/register" className="auth-link">
-              Create one
-            </Link>
-          </Typography>
-        </Stack>
-      </Paper>
-    </div>
+          <Box textAlign="center" mt={3}>
+            <Typography variant="body2">
+              Don’t have an account?{" "}
+              <Link to="/register" style={{ color: "#667eea", fontWeight: 600 }}>
+                Register
+              </Link>
+            </Typography>
+            <Typography variant="body2" mt={1}>
+              <Link to="/forgot-password" style={{ color: "#667eea", fontWeight: 600 }}>
+                Forgot Password?
+              </Link>
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    </motion.section>
   );
 }

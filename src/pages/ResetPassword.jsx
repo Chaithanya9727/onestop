@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { TextField, Button, Paper, Typography, Alert } from "@mui/material"
 import { useParams, useNavigate } from "react-router-dom"
-import '../styles.css'
+
 
 export default function ResetPassword() {
   const { token } = useParams()
@@ -15,7 +15,7 @@ export default function ResetPassword() {
     setMsg("")
     setErr("")
     try {
-      const res = await fetch(`https://server-hv9f.onrender.com/api/auth/reset-password/${token}`, {
+      const res = await fetch(`http://localhost:5000/api/auth/reset-password/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword }),

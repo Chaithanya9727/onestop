@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TextField, Button, Paper, Typography, Alert } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import "../styles.css";
+// import "../styles.css";
 
 export default function VerifyOtp() {
   const query = new URLSearchParams(useLocation().search);
@@ -18,7 +18,7 @@ export default function VerifyOtp() {
     setMsg("");
     setErr("");
     try {
-      const res = await fetch("https://server-hv9f.onrender.com/api/auth/verify-otp", {
+      const res = await fetch("http://localhost:5000/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp, newPassword }),

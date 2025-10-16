@@ -13,16 +13,22 @@ import {
   List,
   ListItem,
   ListItemText,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  IconButton,
 } from "@mui/material";
+import { Google, GitHub, Email as EmailIcon, Delete, Visibility } from "@mui/icons-material";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { UAParser } from "ua-parser-js";
-import '../styles.css'
-
 
 export default function Profile() {
   const { user, setUser, role, refreshUser } = useAuth();
-  const { get, put } = useApi();
+  const { get, put, post } = useApi();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,20 +36,32 @@ export default function Profile() {
   const [err, setErr] = useState("");
   const [success, setSuccess] = useState("");
 
-  // password states
+  // Password change
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [passErr, setPassErr] = useState("");
 
-  // avatar upload
+  // Avatar
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
 
-  // activity tracking
+  // View avatar modal
+  const [viewAvatarOpen, setViewAvatarOpen] = useState(false);
+
+  // Login activity
   const [lastLogin, setLastLogin] = useState(null);
   const [loginHistory, setLoginHistory] = useState([]);
 
-  // Load current profile + login activity
+  // Verification
+  const [openEmailVerify, setOpenEmailVerify] = useState(false);
+  const [openPasswordVerify, setOpenPasswordVerify] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpStatus, setOtpStatus] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Load profile & activity
   useEffect(() => {
     const load = async () => {
       try {
@@ -64,29 +82,85 @@ export default function Profile() {
       }
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [get]);
 
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+  // ✅ Detect Auth Method Badge
+  const getAuthMethod = () => {
+    if (user?.googleId)
+      return { label: "Google", color: "error", icon: <Google fontSize="small" /> };
+    if (user?.githubId)
+      return { label: "GitHub", color: "default", icon: <GitHub fontSize="small" /> };
+    return { label: "Email", color: "primary", icon: <EmailIcon fontSize="small" /> };
+  };
+  const authMethod = getAuthMethod();
+
+  // ✅ Email OTP
+  const sendEmailVerification = async () => {
+    setOtpStatus("");
+    setOtpLoading(true);
+    try {
+      const res = await post("/auth/send-verification-otp", { email });
+      setOtpStatus(res.message);
+      setOpenEmailVerify(true);
+    } catch {
+      setOtpStatus("Failed to send verification OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const verifyEmailOtp = async () => {
+    try {
+      const res = await post("/auth/verify-verification-otp", { email, otp });
+      if (res.success) {
+        setOtpStatus("✅ Email verified successfully!");
+        setOpenEmailVerify(false);
+        handleProfileSave(true);
+      } else {
+        setOtpStatus("Invalid or expired OTP.");
+      }
+    } catch {
+      setOtpStatus("Verification failed.");
+    }
+  };
+
+  // ✅ Update Profile
+  const handleProfileSave = async (skipVerify = false) => {
     setErr("");
     setSuccess("");
     try {
+      if (!skipVerify && email !== user.email) {
+        await sendEmailVerification();
+        return;
+      }
+
       const body = { name, email };
       if (role === "admin" && newRole) body.role = newRole;
 
       const updated = await put("/users/me", body);
       setUser(updated);
       setSuccess("Profile updated successfully ✅");
-
       await refreshUser();
     } catch {
       setErr("Update failed");
     }
   };
 
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    handleProfileSave();
+  };
+
+  // ✅ Change password
   const handleChangePassword = async (e) => {
     e.preventDefault();
+    setPassErr("");
+    setPassMsg("");
+    setOpenPasswordVerify(true);
+  };
+
+  const handlePasswordVerification = async () => {
+    setOtpLoading(true);
     setPassErr("");
     setPassMsg("");
     try {
@@ -94,46 +168,60 @@ export default function Profile() {
         oldPassword,
         newPassword,
       });
-      setPassMsg(res.message);
+      setPassMsg(res.message || "Password updated successfully ✅");
+      setOpenPasswordVerify(false);
       setOldPassword("");
       setNewPassword("");
-    } catch (e) {
-      setPassErr(
-        "Password update failed: " +
-          (e.response?.data?.message || "Unknown error")
-      );
+    } catch {
+      setPassErr("Password update failed. Please verify credentials.");
+    } finally {
+      setOtpLoading(false);
     }
   };
 
-  // ✅ Upload avatar and instantly update Navbar
-  const handleAvatarUpload = async (e) => {
+  // ✅ Avatar Upload
+  const handleAvatarSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
 
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) return;
     setAvatarUploading(true);
     setErr("");
     setSuccess("");
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
-
+      formData.append("file", avatarFile);
       const updated = await put("/users/me/avatar", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
-      setUser(updated); // 🔥 updates AuthContext → Navbar re-renders
+      setUser(updated);
       await refreshUser();
       setSuccess("Avatar updated ✅");
-    } catch (err) {
-      console.error("Avatar upload failed", err);
+      setAvatarPreview(null);
+      setAvatarFile(null);
+    } catch {
       setErr("Avatar upload failed");
     } finally {
       setAvatarUploading(false);
     }
   };
 
-  // ✅ Helper: Format User Agent
+  // ✅ Remove Avatar (from DB)
+  const handleRemoveAvatar = async () => {
+    try {
+      await put("/users/me/avatar", { remove: true });
+      setUser({ ...user, avatar: "" });
+      setSuccess("Avatar removed successfully ✅");
+    } catch {
+      setErr("Failed to remove avatar");
+    }
+  };
+
   const formatUserAgent = (uaString) => {
     if (!uaString) return "Unknown device";
     const parser = new UAParser(uaString);
@@ -154,33 +242,69 @@ export default function Profile() {
 
         {/* Avatar Section */}
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-          <Avatar
-            src={user?.avatar || ""}
-            alt={user?.name}
-            sx={{ width: 70, height: 70 }}
-          />
-          <Button
-            variant="outlined"
-            component="label"
-            disabled={avatarUploading}
-          >
-            {avatarUploading ? "Uploading..." : "Change Avatar"}
-            <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
-          </Button>
+          <IconButton onClick={() => setViewAvatarOpen(true)}>
+            <Avatar
+              src={user?.avatar || ""}
+              alt={user?.name}
+              sx={{ width: 80, height: 80, cursor: "pointer" }}
+            />
+          </IconButton>
+
+          <Stack spacing={1}>
+            <Button
+              variant="outlined"
+              component="label"
+              disabled={avatarUploading}
+            >
+              {avatarUploading ? "Uploading..." : "Change Avatar"}
+              <input type="file" hidden accept="image/*" onChange={handleAvatarSelect} />
+            </Button>
+
+            {avatarPreview && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <img
+                  src={avatarPreview}
+                  alt="preview"
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid #ddd",
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleAvatarUpload}
+                  disabled={avatarUploading}
+                >
+                  {avatarUploading ? <CircularProgress size={20} /> : "Upload"}
+                </Button>
+                <IconButton color="error" onClick={handleRemoveAvatar}>
+                  <Delete />
+                </IconButton>
+              </Stack>
+            )}
+          </Stack>
         </Stack>
 
-        {/* Profile update form */}
+        {/* Auth Method Badge */}
+        <Chip
+          icon={authMethod.icon}
+          label={`Signed in via ${authMethod.label}`}
+          color={authMethod.color}
+          variant="outlined"
+          sx={{ mb: 3, fontWeight: 500 }}
+        />
+
+        {/* Profile form */}
         <Box
           component="form"
           onSubmit={handleUpdateProfile}
           sx={{ mt: 2, display: "grid", gap: 2 }}
         >
-          <TextField
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+          <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
           <TextField
             label="Email"
             type="email"
@@ -197,7 +321,7 @@ export default function Profile() {
               onChange={(e) => setNewRole(e.target.value)}
             >
               <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="student">Student</MenuItem>
+              <MenuItem value="candidate">candidate</MenuItem>
               <MenuItem value="guest">Guest</MenuItem>
             </TextField>
           )}
@@ -209,7 +333,7 @@ export default function Profile() {
 
         <Divider sx={{ my: 4 }} />
 
-        {/* Change Password section */}
+        {/* Password Change */}
         <Typography variant="h6">Change Password</Typography>
         {passErr && <Alert severity="error">{passErr}</Alert>}
         {passMsg && <Alert severity="success">{passMsg}</Alert>}
@@ -240,7 +364,7 @@ export default function Profile() {
 
         <Divider sx={{ my: 4 }} />
 
-        {/* ✅ Login Activity Section */}
+        {/* Login Activity */}
         <Typography variant="h6" gutterBottom>
           Login Activity
         </Typography>
@@ -270,6 +394,63 @@ export default function Profile() {
           </Typography>
         )}
       </Paper>
+
+      {/* View Avatar Dialog */}
+      <Dialog open={viewAvatarOpen} onClose={() => setViewAvatarOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Profile Picture</DialogTitle>
+        <DialogContent sx={{ textAlign: "center" }}>
+          <img
+            src={user?.avatar || ""}
+            alt="profile"
+            style={{
+              width: "100%",
+              borderRadius: "10px",
+              objectFit: "cover",
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewAvatarOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Email Verification */}
+      <Dialog open={openEmailVerify} onClose={() => setOpenEmailVerify(false)}>
+        <DialogTitle>Email Verification</DialogTitle>
+        <DialogContent>
+          <Typography>Enter OTP sent to your new email:</Typography>
+          <TextField
+            fullWidth
+            label="Verification Code"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+          {otpStatus && (
+            <Typography sx={{ mt: 1 }} color={otpStatus.includes("✅") ? "green" : "error"}>
+              {otpStatus}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={verifyEmailOtp} disabled={otpLoading}>
+            Verify
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirm Password Dialog */}
+      <Dialog open={openPasswordVerify} onClose={() => setOpenPasswordVerify(false)}>
+        <DialogTitle>Confirm Password Change</DialogTitle>
+        <DialogContent>
+          <Typography>Confirm to change your password securely.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlePasswordVerification} color="secondary" disabled={otpLoading}>
+            {otpLoading ? <CircularProgress size={20} /> : "Confirm"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

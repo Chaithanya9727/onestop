@@ -1,7 +1,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useCallback } from "react";
 
-const API_BASE = "https://server-hv9f.onrender.com/api";
+const API_BASE = "http://localhost:5000/api";
 
 export default function useApi() {
   const { token } = useAuth();
@@ -9,7 +9,7 @@ export default function useApi() {
   const baseHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
   const handleResponse = async (res) => {
-    const data = await res.json().catch(() => ({})); // parse JSON safely
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(data.message || "Request failed");
     }
@@ -19,19 +19,19 @@ export default function useApi() {
   // GET
   const get = useCallback(
     async (url) => {
-      const res = await fetch(API_BASE + url, { headers: baseHeaders });
+      const res = await fetch(`${API_BASE}${url}`, { headers: baseHeaders });
       return handleResponse(res);
     },
     [token]
   );
 
-  // POST (JSON or FormData)
+  // POST
   const post = useCallback(
     async (url, body, isFormData = false) => {
-      const res = await fetch(API_BASE + url, {
+      const res = await fetch(`${API_BASE}${url}`, {
         method: "POST",
         headers: isFormData
-          ? baseHeaders // ✅ Let browser set multipart boundary automatically
+          ? baseHeaders
           : { ...baseHeaders, "Content-Type": "application/json" },
         body: isFormData ? body : JSON.stringify(body),
       });
@@ -40,13 +40,13 @@ export default function useApi() {
     [token]
   );
 
-  // PUT (JSON or FormData)
+  // PUT
   const put = useCallback(
     async (url, body, isFormData = false) => {
-      const res = await fetch(API_BASE + url, {
+      const res = await fetch(`${API_BASE}${url}`, {
         method: "PUT",
         headers: isFormData
-          ? baseHeaders // ✅ works with FormData
+          ? baseHeaders
           : { ...baseHeaders, "Content-Type": "application/json" },
         body: isFormData ? body : JSON.stringify(body),
       });
@@ -55,10 +55,10 @@ export default function useApi() {
     [token]
   );
 
-  // DELETE (supports body if needed)
+  // DELETE  ✅ now supports optional JSON body
   const del = useCallback(
     async (url, body = null) => {
-      const res = await fetch(API_BASE + url, {
+      const res = await fetch(`${API_BASE}${url}`, {
         method: "DELETE",
         headers: body
           ? { ...baseHeaders, "Content-Type": "application/json" }

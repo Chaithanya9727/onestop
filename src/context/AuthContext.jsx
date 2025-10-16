@@ -1,68 +1,79 @@
-import { createContext, useContext, useState, useEffect } from "react"
-import '../styles.css'
+import { createContext, useContext, useState, useEffect } from "react";
 
-const AuthContext = createContext()
 
-function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [role, setRole] = useState("guest")
-  const [token, setToken] = useState(localStorage.getItem("token") || "")
-  const [loading, setLoading] = useState(true)
+const AuthContext = createContext();
 
-  // Keep token in localStorage
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState("guest");
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [loading, setLoading] = useState(true);
+
+  // 🧠 Sync token with localStorage
   useEffect(() => {
-    if (token) localStorage.setItem("token", token)
-    else localStorage.removeItem("token")
-  }, [token])
+    if (token) localStorage.setItem("token", token);
+    else localStorage.removeItem("token");
+  }, [token]);
 
-  // Load user info from backend
+  // 🔑 Load user info (with flexible response handling)
   const loadUser = async () => {
     if (!token) {
-      setUser(null)
-      setRole("guest")
-      setLoading(false)
-      return
+      setUser(null);
+      setRole("guest");
+      setLoading(false);
+      return;
     }
+
     try {
-      setLoading(true)
-      const res = await fetch("https://server-hv9f.onrender.com/api/auth/me", {
+      setLoading(true);
+      const res = await fetch("http://localhost:5000/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) throw new Error("Auth check failed")
-      const data = await res.json()
-      setUser(data)
-      setRole(data.role || "guest") // ✅ always use role from backend
+      });
+
+      if (!res.ok) throw new Error("Auth check failed");
+      const data = await res.json();
+
+      // Handle possible nested user object
+      const userData = data.user || data;
+      setUser(userData);
+      setRole(userData.role?.toLowerCase() || "guest");
     } catch (err) {
-      console.error("Auth check failed", err)
-      setUser(null)
-      setRole("guest")
-      setToken("")
-      localStorage.clear()
+      console.error("⚠️ Auth check failed:", err.message);
+      logout();
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadUser()
-  }, [token])
+    loadUser();
+  }, [token]);
 
-  // ✅ Logout
+  // 🚪 Logout (clear session)
   const logout = () => {
-    setUser(null)
-    setRole("guest")
-    setToken("")
-    localStorage.clear()
-  }
+    setUser(null);
+    setRole("guest");
+    setToken("");
+    localStorage.clear();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, role, setRole, token, setToken, logout, loading, refreshUser: loadUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        role,
+        setRole,
+        token,
+        setToken,
+        logout,
+        loading,
+        refreshUser: loadUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
-const useAuth = () => useContext(AuthContext)
-
-// ✅ named exports only
-export { AuthProvider, useAuth }
+export const useAuth = () => useContext(AuthContext);

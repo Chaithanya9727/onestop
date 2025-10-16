@@ -13,17 +13,17 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InsertLinkIcon from "@mui/icons-material/InsertLink";
 import CloseIcon from "@mui/icons-material/Close";
-import '../styles.css'
+
 
 export default function ResourceCard({ resource, user, role, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
 
-  // ✅ check file types
+  // ✅ file type checks
   const isImage = (url) => url?.match(/\.(jpeg|jpg|png|gif|webp)$/i);
   const isPdf = (url) => url?.match(/\.pdf$/i);
   const isDoc = (url) => url?.match(/\.(doc|docx|ppt|pptx)$/i);
 
-  // ✅ Decide button label + icon
+  // ✅ button label + icon
   const getButtonLabel = () => {
     if (isImage(resource.url)) return "View Image";
     if (isPdf(resource.url)) return "View PDF";
@@ -39,7 +39,7 @@ export default function ResourceCard({ resource, user, role, onEdit, onDelete })
     return null;
   };
 
-  // ✅ For embedded Google Docs viewer
+  // ✅ embedded viewer for docs/pdf
   const getEmbedUrl = () => {
     if (isPdf(resource.url) || isDoc(resource.url)) {
       return `https://docs.google.com/viewer?url=${encodeURIComponent(resource.url)}&embedded=true`;
@@ -47,14 +47,30 @@ export default function ResourceCard({ resource, user, role, onEdit, onDelete })
     return resource.url;
   };
 
+  // ✅ Role-based access
+  const iscandidate = role?.toLowerCase() === "candidate";
+  const isAdmin = role?.toLowerCase() === "admin";
+  const isSuperAdmin = role?.toLowerCase() === "superadmin";
+
+  const canEdit =
+    user &&
+    (resource.createdBy?._id === user._id || isAdmin || isSuperAdmin);
+
+  const canDelete = isAdmin || isSuperAdmin;
+
   return (
     <Paper sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-      {/* Image preview */}
+      {/* Thumbnail */}
       {isImage(resource.url) && (
         <img
           src={resource.url}
           alt={resource.title}
-          style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 8 }}
+          style={{
+            width: "100%",
+            maxHeight: 180,
+            objectFit: "cover",
+            borderRadius: 8,
+          }}
         />
       )}
 
@@ -68,7 +84,7 @@ export default function ResourceCard({ resource, user, role, onEdit, onDelete })
         </Typography>
       )}
 
-      {/* Type chip */}
+      {/* Type tag */}
       {resource.type && (
         <Chip
           label={resource.type}
@@ -91,27 +107,24 @@ export default function ResourceCard({ resource, user, role, onEdit, onDelete })
           sx={{ alignSelf: "flex-start" }}
           startIcon={getButtonIcon()}
           onClick={() => {
-            if (isPdf(resource.url) || isDoc(resource.url)) {
-              setOpen(true); // open in modal
-            } else {
-              window.open(resource.url, "_blank", "noopener,noreferrer");
-            }
+            if (isPdf(resource.url) || isDoc(resource.url)) setOpen(true);
+            else window.open(resource.url, "_blank", "noopener,noreferrer");
           }}
         >
           {getButtonLabel()}
         </Button>
       )}
 
-      {/* Created By */}
-      {resource.user && resource.user.name && (
+      {/* Uploaded by */}
+      {resource.createdBy && resource.createdBy.name && (
         <Typography variant="caption" color="text.secondary">
-          Uploaded by {resource.user.name}
+          Uploaded by {resource.createdBy.name}
         </Typography>
       )}
 
-      {/* Actions */}
+      {/* ✅ Actions: Edit/Delete */}
       <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-        {user && (resource.user?._id === user._id || role === "admin") && (
+        {canEdit && (
           <Button
             color="primary"
             variant="outlined"
@@ -122,7 +135,7 @@ export default function ResourceCard({ resource, user, role, onEdit, onDelete })
           </Button>
         )}
 
-        {role === "admin" && (
+        {canDelete && (
           <Button
             color="error"
             variant="contained"
@@ -134,9 +147,14 @@ export default function ResourceCard({ resource, user, role, onEdit, onDelete })
         )}
       </Stack>
 
-      {/* ✅ Modal for PDF/Docs preview */}
+      {/* ✅ Modal preview */}
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="lg">
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 1 }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ p: 1 }}
+        >
           <Typography variant="subtitle1">{resource.title}</Typography>
           <IconButton onClick={() => setOpen(false)}>
             <CloseIcon />

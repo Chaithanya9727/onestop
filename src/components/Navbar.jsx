@@ -16,59 +16,99 @@ import {
   List,
   ListItemButton,
   ListItemText,
+  Fade,
+  Tooltip,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../socket.jsx";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import ChatIcon from "@mui/icons-material/Chat";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import PersonIcon from "@mui/icons-material/Person";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useEffect, useState } from "react";
 import useApi from "../hooks/useApi";
 import { motion } from "framer-motion";
-import "../styles.css";
+import { useThemeMode } from "../hooks/useThemeMode.js";
+import { Sun, Moon } from "lucide-react";
 
 export default function Navbar() {
   const { user, role, logout } = useAuth();
-  const { get, del } = useApi();
+  const { get } = useApi();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isConnected, connectionStatus } = useSocket();
+  const { mode, toggleTheme } = useThemeMode();
 
-  const [anchorEl, setAnchorEl] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [avatarMenu, setAvatarMenu] = useState(null);
   const [notices, setNotices] = useState([]);
   const [events, setEvents] = useState([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showToast, setShowToast] = useState(false);
 
-  const open = Boolean(anchorEl);
+  const avatarOpen = Boolean(avatarMenu);
 
-  const loadData = async () => {
-    try {
-      const n = await get("/notices");
-      const e = await get("/events");
-      setNotices(Array.isArray(n) ? n.slice(0, 3) : n.notices?.slice(0, 3) || []);
-      setEvents(Array.isArray(e) ? e.slice(0, 3) : e.events?.slice(0, 3) || []);
-    } catch (err) {
-      console.error("Failed to load notifications", err);
-    }
-  };
-
+  // Load notices/events
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const n = await get("/notices");
+        const e = await get("/events");
+        setNotices(Array.isArray(n) ? n.slice(0, 3) : n.notices?.slice(0, 3) || []);
+        setEvents(Array.isArray(e) ? e.slice(0, 3) : e.events?.slice(0, 3) || []);
+      } catch (err) {
+        console.error("Failed to load notifications", err);
+      }
+    };
     if (user) loadData();
-  }, [user]);
+  }, [user, get]);
 
-  const handleOpen = (event) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+  // Real-time new messages
+  useEffect(() => {
+    if (!isConnected) return;
+    const handleNewMessage = (data) => {
+      setUnreadMessages((prev) => prev + 1);
+      if (Notification.permission === "granted") {
+        new Notification("📩 New Message", {
+          body: `From: ${data?.from?.name || "Someone"}`,
+          icon: "/favicon.ico",
+        });
+      }
+    };
+    window.addEventListener("socket:newMessage", handleNewMessage);
+    return () => window.removeEventListener("socket:newMessage", handleNewMessage);
+  }, [isConnected]);
 
-  const clearAll = async () => {
-    try {
-      await del("/notifications/clear");
-      setNotices([]);
-      setEvents([]);
-    } catch (err) {
-      console.error("Failed to clear notifications", err);
+  // Reset unread on chat visit
+  useEffect(() => {
+    if (location.pathname.includes("/chat") || location.pathname.includes("/admin/messages")) {
+      setUnreadMessages(0);
     }
-    handleClose();
+  }, [location.pathname]);
+
+  // Connection toast
+  useEffect(() => {
+    if (connectionStatus === "connected" || connectionStatus === "connecting") {
+      setShowToast(true);
+      const timer = setTimeout(() => setShowToast(false), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [connectionStatus]);
+
+  // Avatar Menu handlers
+  const handleAvatarClick = (event) => setAvatarMenu(event.currentTarget);
+  const handleAvatarClose = () => setAvatarMenu(null);
+
+  const toggleDrawer = (state) => setDrawerOpen(state);
+  const handleNavClick = (path) => {
+    navigate(path);
+    toggleDrawer(false);
   };
 
   const isActive = (path) => location.pathname === path;
@@ -77,337 +117,292 @@ export default function Navbar() {
     { label: "Home", path: "/" },
     { label: "Notices", path: "/notices" },
     { label: "Contact", path: "/contact" },
+    { label: "Dashboard", path: "/dashboard" },
+    { label: "Resources", path: "/resources" },
   ];
 
-  const toggleDrawer = (state) => setDrawerOpen(state);
+  const showManageUsers = role === "admin" || role === "superadmin";
+  const roleColor =
+    role === "superadmin"
+      ? "success"
+      : role === "admin"
+      ? "warning"
+      : role === "candidate"
+      ? "primary"
+      : "default";
 
-  const handleNavClick = (path) => {
-    navigate(path);
-    toggleDrawer(false); // ✅ Auto-close menu on mobile
-  };
+  useEffect(() => {
+    if (Notification && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   return (
     <>
       <AppBar
         position="sticky"
+        elevation={0}
         sx={{
-          background: "linear-gradient(90deg, #1e3c72, #2a5298)",
-          px: { xs: 2, md: 3 },
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          background:
+            mode === "dark"
+              ? "rgba(20, 20, 40, 0.8)"
+              : "rgba(255, 255, 255, 0.65)",
+          backdropFilter: "blur(18px)",
+          boxShadow:
+            mode === "dark"
+              ? "0 6px 25px rgba(120, 90, 255, 0.25)"
+              : "0 6px 25px rgba(50, 50, 150, 0.15)",
+          borderBottom:
+            mode === "dark"
+              ? "1px solid rgba(255,255,255,0.08)"
+              : "1px solid rgba(0,0,0,0.08)",
+          transition: "all 0.4s ease",
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          {/* 🎓 Logo / Brand */}
+        <Toolbar sx={{ justifyContent: "space-between", minHeight: "75px", px: { xs: 2, md: 4 } }}>
+          {/* 🌟 Logo */}
           <Typography
             variant="h6"
             fontWeight="bold"
-            component="button"
             onClick={() => navigate(user ? "/dashboard" : "/")}
-            style={{
-              textDecoration: "none",
-              color: "white",
-              background: "none",
-              border: "none",
+            sx={{
               cursor: "pointer",
-              fontSize: "1.2rem",
+              color: mode === "dark" ? "#fff" : "#1e1e2f",
+              letterSpacing: 0.4,
+              fontSize: "1.5rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              "&:hover": { textShadow: "0 0 10px rgba(176,148,255,0.6)" },
             }}
           >
-            🎓 OneStop
+            🎓 <span style={{ color: "#6c63ff" }}>OneStop</span>{" "}
+            <span style={{ color: mode === "dark" ? "#ffb6ec" : "#f50057" }}>Hub</span>
           </Typography>
 
-          {/* ☰ Mobile Toggle Button */}
-          <IconButton
-            sx={{ display: { xs: "flex", md: "none" }, color: "white" }}
-            onClick={() => toggleDrawer(true)}
-          >
-            <MenuIcon fontSize="large" />
-          </IconButton>
-
-          {/* 🖥️ Desktop Menu */}
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ display: { xs: "none", md: "flex" } }}
-          >
-            {menuItems.map((item) => (
-              <Box key={item.path} sx={{ position: "relative" }}>
-                <Button
-                  color="inherit"
-                  component={Link}
-                  to={item.path}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: isActive(item.path) ? "bold" : "normal",
-                  }}
-                >
-                  {item.label}
-                </Button>
-                {isActive(item.path) && (
-                  <motion.div
-                    layoutId="activeNav"
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 3,
-                      background: "#ffeb3b",
-                      borderRadius: "2px",
-                    }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </Box>
-            ))}
-
-            {/* 🧍 Authenticated User Section */}
-            {user ? (
-              <>
-                <Button color="inherit" component={Link} to="/dashboard">
-                  Dashboard
-                </Button>
-                <Button color="inherit" component={Link} to="/resources">
-                  Resources
-                </Button>
-
-                {/* 💬 Chat */}
-                <IconButton
-                  color="inherit"
-                  component={Link}
-                  to="/chat"
-                  sx={{
-                    "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
-                  }}
-                >
-                  <Badge badgeContent={unreadMessages} color="error" max={99}>
-                    <ChatIcon />
-                  </Badge>
-                </IconButton>
-
-                <Button color="inherit" component={Link} to="/profile">
-                  Profile
-                </Button>
-
-                {role === "admin" && (
+          {/* 🖥️ Desktop Navigation */}
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ display: { xs: "none", md: "flex" } }}>
+            {menuItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <motion.div key={item.path} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
                   <Button
-                    color="warning"
-                    variant="contained"
                     component={Link}
-                    to="/admin"
+                    to={item.path}
                     sx={{
-                      borderRadius: "20px",
-                      fontWeight: "bold",
                       textTransform: "none",
+                      fontWeight: active ? 700 : 500,
+                      color: active
+                        ? "#fff"
+                        : mode === "dark"
+                        ? "#d1caff"
+                        : "#333",
+                      background: active
+                        ? "linear-gradient(135deg, #6c63ff, #ff4081)"
+                        : "transparent",
+                      px: 2.5,
+                      py: 1,
+                      borderRadius: "30px",
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        background: active
+                          ? "linear-gradient(135deg, #7a6aff, #ff5b95)"
+                          : "rgba(108,99,255,0.08)",
+                      },
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                </motion.div>
+              );
+            })}
+
+            {/* 🌗 Theme Toggle */}
+            <Tooltip
+              title={mode === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              arrow
+            >
+              <IconButton
+                onClick={toggleTheme}
+                sx={{
+                  color: "#fff",
+                  background:
+                    mode === "light"
+                      ? "linear-gradient(135deg, #6c63ff, #ff3366)"
+                      : "linear-gradient(135deg, #b094ff, #ff5c8a)",
+                  boxShadow:
+                    mode === "light"
+                      ? "0 0 10px rgba(108,99,255,0.5)"
+                      : "0 0 16px rgba(176,148,255,0.5)",
+                  "&:hover": {
+                    transform: "scale(1.1)",
+                    boxShadow:
+                      mode === "light"
+                        ? "0 0 20px rgba(108,99,255,0.7)"
+                        : "0 0 25px rgba(176,148,255,0.7)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+              >
+                {mode === "light" ? <Moon size={20} /> : <Sun size={20} />}
+              </IconButton>
+            </Tooltip>
+
+            {user && (
+              <>
+                {showManageUsers && (
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate("/admin")}
+                    sx={{
+                      textTransform: "none",
+                      borderRadius: "25px",
+                      fontWeight: 600,
+                      px: 2.5,
+                      background: "linear-gradient(135deg, #ffb300, #ff9100)",
+                      "&:hover": {
+                        background: "linear-gradient(135deg, #ff9100, #ff6f00)",
+                      },
+                      color: "#fff",
+                      boxShadow: "0 4px 14px rgba(255,193,7,0.4)",
                     }}
                   >
                     Manage Users
                   </Button>
                 )}
 
-                {/* 🔔 Notifications */}
-                <IconButton color="inherit" onClick={handleOpen}>
+                <IconButton color="inherit" onClick={() => navigate("/chat")}>
+                  <Badge badgeContent={unreadMessages} color="error" max={99}>
+                    <ChatIcon sx={{ color: mode === "dark" ? "#fff" : "#333" }} />
+                  </Badge>
+                </IconButton>
+
+                <IconButton color="inherit">
                   <Badge
                     badgeContent={(notices.length + events.length) || 0}
                     color="error"
                   >
-                    <NotificationsIcon />
+                    <NotificationsIcon sx={{ color: mode === "dark" ? "#fff" : "#333" }} />
                   </Badge>
                 </IconButton>
 
-                <Menu
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
-                  PaperProps={{ sx: { width: 320, maxHeight: 400 } }}
-                >
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    sx={{ px: 2, py: 1 }}
-                  >
-                    <Typography fontWeight="bold">🔔 Notifications</Typography>
-                    <Button size="small" color="error" onClick={clearAll}>
-                      Clear All
-                    </Button>
-                  </Stack>
-                  <Divider />
-                  {notices.length === 0 && events.length === 0 ? (
-                    <MenuItem disabled>No new updates</MenuItem>
-                  ) : (
-                    <>
-                      {notices.map((n) => (
-                        <MenuItem
-                          key={n._id}
-                          onClick={() => {
-                            handleClose();
-                            navigate("/notices");
-                          }}
-                        >
-                          📢 {n.title}
-                        </MenuItem>
-                      ))}
-                      {events.map((ev) => (
-                        <MenuItem
-                          key={ev._id}
-                          onClick={() => {
-                            handleClose();
-                            navigate("/events");
-                          }}
-                        >
-                          📅 {ev.title} (
-                          {new Date(ev.date).toLocaleDateString()})
-                        </MenuItem>
-                      ))}
-                    </>
-                  )}
-                </Menu>
+                {/* 👤 Avatar + Dropdown */}
+                <Box sx={{ position: "relative" }}>
+                  <Tooltip title={isConnected ? "Online" : "Offline"}>
+                    <IconButton onClick={handleAvatarClick}>
+                      <Avatar
+                        src={user.avatar || ""}
+                        alt={user.name}
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          border: "2px solid #fff",
+                          boxShadow:
+                            mode === "dark"
+                              ? "0 0 8px rgba(176,148,255,0.6)"
+                              : "0 0 6px rgba(108,99,255,0.4)",
+                        }}
+                      >
+                        {!user.avatar && user.name?.charAt(0)}
+                      </Avatar>
+                    </IconButton>
+                  </Tooltip>
 
-                {/* 🧍 User Info */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Avatar
-                    src={user.avatar || ""}
-                    alt={user.name}
-                    sx={{
-                      width: 35,
-                      height: 35,
-                      border: "2px solid white",
+                  {/* ✅ Avatar Dropdown Menu */}
+                  <Menu
+                    anchorEl={avatarMenu}
+                    open={avatarOpen}
+                    onClose={handleAvatarClose}
+                    TransitionComponent={Fade}
+                    PaperProps={{
+                      sx: {
+                        borderRadius: 2,
+                        width: 200,
+                        boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+                        backdropFilter: "blur(12px)",
+                        background:
+                          mode === "dark"
+                            ? "rgba(25,25,35,0.9)"
+                            : "rgba(255,255,255,0.95)",
+                      },
                     }}
                   >
-                    {!user.avatar && user.name?.charAt(0)}
-                  </Avatar>
-                  <Chip
-                    label={role}
-                    size="small"
-                    color={
-                      role === "admin"
-                        ? "error"
-                        : role === "student"
-                        ? "primary"
-                        : "default"
-                    }
-                    sx={{
-                      fontWeight: "bold",
-                      textTransform: "capitalize",
-                    }}
-                  />
+                    <MenuItem
+                      onClick={() => {
+                        handleAvatarClose();
+                        navigate("/profile");
+                      }}
+                    >
+                      <PersonIcon fontSize="small" sx={{ mr: 1 }} /> Profile
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => {
+                        handleAvatarClose();
+                        navigate("/dashboard");
+                      }}
+                    >
+                      <DashboardIcon fontSize="small" sx={{ mr: 1 }} /> Dashboard
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem
+                      onClick={() => {
+                        handleAvatarClose();
+                        logout();
+                      }}
+                    >
+                      <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Logout
+                    </MenuItem>
+                  </Menu>
                 </Box>
 
-                <Button
-                  color="error"
-                  variant="outlined"
-                  onClick={logout}
-                  sx={{ borderRadius: "20px", fontWeight: "bold" }}
-                >
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button color="inherit" component={Link} to="/login">
-                  Login
-                </Button>
-                <Button
-                  color="secondary"
-                  variant="contained"
-                  component={Link}
-                  to="/register"
-                  sx={{
-                    borderRadius: "20px",
-                    fontWeight: "bold",
-                    background: "linear-gradient(90deg, #ff4081, #f50057)",
-                    "&:hover": {
-                      background: "linear-gradient(90deg, #f50057, #c51162)",
-                    },
-                  }}
-                >
-                  Register
-                </Button>
-                <Button color="inherit" component={Link} to="/forgot-password">
-                  Forgot Password?
-                </Button>
+                <Chip
+                  label={role}
+                  size="small"
+                  color={roleColor}
+                  sx={{ fontWeight: "bold", textTransform: "capitalize" }}
+                />
               </>
             )}
           </Stack>
+
+          {/* 📱 Mobile Drawer */}
+          <IconButton
+            sx={{
+              display: { xs: "flex", md: "none" },
+              color: mode === "dark" ? "#fff" : "#333",
+            }}
+            onClick={() => toggleDrawer(true)}
+          >
+            <MenuIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* 📱 MOBILE DRAWER MENU */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={() => toggleDrawer(false)}
-        sx={{ display: { xs: "block", md: "none" } }}
+      {/* 🌐 Connection Toast */}
+      <Snackbar
+        open={showToast}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        autoHideDuration={2500}
+        onClose={() => setShowToast(false)}
       >
-        <Box sx={{ width: 250 }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ px: 2, py: 1 }}
-          >
-            <Typography variant="h6" fontWeight="bold">
-              OneStop Menu
-            </Typography>
-            <IconButton onClick={() => toggleDrawer(false)}>
-              <CloseIcon />
-            </IconButton>
-          </Stack>
-          <Divider />
-
-          <List>
-            {menuItems.map((item) => (
-              <ListItemButton
-                key={item.path}
-                onClick={() => handleNavClick(item.path)}
-              >
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            ))}
-
-            {user ? (
-              <>
-                <ListItemButton onClick={() => handleNavClick("/dashboard")}>
-                  <ListItemText primary="Dashboard" />
-                </ListItemButton>
-                <ListItemButton onClick={() => handleNavClick("/resources")}>
-                  <ListItemText primary="Resources" />
-                </ListItemButton>
-                <ListItemButton onClick={() => handleNavClick("/chat")}>
-                  <ListItemText primary="Chat" />
-                </ListItemButton>
-                <ListItemButton onClick={() => handleNavClick("/profile")}>
-                  <ListItemText primary="Profile" />
-                </ListItemButton>
-                {role === "admin" && (
-                  <ListItemButton onClick={() => handleNavClick("/admin")}>
-                    <ListItemText primary="Manage Users" />
-                  </ListItemButton>
-                )}
-                <Divider />
-                <ListItemButton onClick={logout}>
-                  <ListItemText primary="Logout" />
-                </ListItemButton>
-              </>
-            ) : (
-              <>
-                <ListItemButton onClick={() => handleNavClick("/login")}>
-                  <ListItemText primary="Login" />
-                </ListItemButton>
-                <ListItemButton onClick={() => handleNavClick("/register")}>
-                  <ListItemText primary="Register" />
-                </ListItemButton>
-                <ListItemButton
-                  onClick={() => handleNavClick("/forgot-password")}
-                >
-                  <ListItemText primary="Forgot Password?" />
-                </ListItemButton>
-              </>
-            )}
-          </List>
-        </Box>
-      </Drawer>
+        <Alert
+          severity={
+            connectionStatus === "connected"
+              ? "success"
+              : connectionStatus === "connecting"
+              ? "info"
+              : "error"
+          }
+          variant="filled"
+          sx={{ borderRadius: 2, fontWeight: "bold" }}
+        >
+          {connectionStatus === "connected"
+            ? "✅ Connected to OneStop Hub"
+            : connectionStatus === "connecting"
+            ? "🔄 Reconnecting..."
+            : "⚠️ Connection lost"}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

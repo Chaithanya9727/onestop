@@ -1,81 +1,123 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* 🌈 PREMIUM NAVBAR STYLING */
+.MuiAppBar-root {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 30px rgba(108, 99, 255, 0.15);
+  border-radius: 18px;
+  margin: 12px auto;
+  width: 96%;
+  transition: all 0.4s ease;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body.dark-mode .MuiAppBar-root {
+  background: rgba(30, 30, 45, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 25px rgba(176, 148, 255, 0.25);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Navbar text and logo */
+.MuiTypography-root {
+  font-weight: 700 !important;
+  background: linear-gradient(90deg, #6c63ff, #ff3366);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.3s ease;
+}
+body.dark-mode .MuiTypography-root {
+  background: linear-gradient(90deg, #b094ff, #ff5c8a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* 🧭 Nav Buttons */
+.MuiButton-root {
+  color: #1e1e2e !important;
+  font-weight: 600 !important;
+  border-radius: 14px !important;
+  text-transform: none !important;
+  font-size: 1rem !important;
+  padding: 8px 18px !important;
+  transition: all 0.3s ease !important;
 }
 
-.card {
-  padding: 2em;
+.MuiButton-root:hover {
+  background: rgba(108, 99, 255, 0.12);
+  transform: translateY(-2px);
 }
 
-.read-the-docs {
-  color: #888;
+body.dark-mode .MuiButton-root {
+  color: #f5f5ff !important;
+}
+body.dark-mode .MuiButton-root:hover {
+  background: rgba(176, 148, 255, 0.15);
 }
 
-/* Responsive adjustments */
-
-/* Tablets */
-@media (max-width: 1024px) {
-  .container {
-    padding: 1rem;
-  }
-
-  h1, h2 {
-    font-size: 1.5rem;
-  }
+/* ✨ Active Page Highlight */
+.nav-active {
+  background: linear-gradient(135deg, #6c63ff, #ff3366);
+  color: white !important;
+  box-shadow: 0 0 15px rgba(108, 99, 255, 0.4);
+  transform: translateY(-2px);
+}
+body.dark-mode .nav-active {
+  background: linear-gradient(135deg, #b094ff, #ff5c8a);
+  box-shadow: 0 0 18px rgba(176, 148, 255, 0.5);
 }
 
-/* Mobile phones */
-@media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    align-items: center;
-  }
+/* 🟣 Manage Users Button */
+.MuiButton-containedWarning {
+  background: linear-gradient(135deg, #ffb300, #ff9800) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4) !important;
+  transition: all 0.3s ease;
+}
+.MuiButton-containedWarning:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 22px rgba(255, 193, 7, 0.55) !important;
+}
 
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+/* Avatar glow */
+.MuiAvatar-root {
+  box-shadow: 0 0 10px rgba(108, 99, 255, 0.25);
+  transition: all 0.3s ease;
+}
+.MuiAvatar-root:hover {
+  box-shadow: 0 0 20px rgba(108, 99, 255, 0.45);
+}
 
-  .card {
-    width: 100%;
-  }
+/* Chip (Role Badge) */
+.MuiChip-root {
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  padding: 0 8px !important;
+  text-transform: capitalize !important;
+  background: rgba(108, 99, 255, 0.15) !important;
+  color: #1a1a2e !important;
+}
+body.dark-mode .MuiChip-root {
+  background: rgba(176, 148, 255, 0.25) !important;
+  color: #fff !important;
+}
 
-  .hero-section h1 {
-    font-size: 1.2rem;
-  }
-
-  button {
-    width: 100%;
-  }
+/* 🌓 Theme Toggle Button (Navbar version) */
+.nav-theme-toggle {
+  background: linear-gradient(135deg, #6c63ff, #ff3366);
+  color: #fff;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 0 12px rgba(108, 99, 255, 0.4);
+  transition: all 0.3s ease;
+}
+.nav-theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(108, 99, 255, 0.6);
+}
+body.dark-mode .nav-theme-toggle {
+  background: linear-gradient(135deg, #b094ff, #ff5c8a);
+  box-shadow: 0 0 16px rgba(176, 148, 255, 0.5);
 }

@@ -19,41 +19,55 @@ import {
   Button,
   Checkbox,
   Autocomplete,
+  Alert,
+  Chip,
 } from "@mui/material";
 import useApi from "../hooks/useApi";
-import '../styles.css'
+import { useAuth } from "../context/AuthContext";
+
 
 export default function AdminLogs() {
   const { get, del } = useApi();
+  const { role: userRole } = useAuth();
+
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
-  const [userOptions, setUserOptions] = useState([]); // 🔥 dynamic options
+  const [userOptions, setUserOptions] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [selected, setSelected] = useState([]);
+  const [error, setError] = useState("");
 
   const pageSize = 10;
 
+  const isElevated = ["admin", "superadmin"].includes(userRole?.toLowerCase());
+  const isSuper = userRole?.toLowerCase() === "superadmin";
+
+  // ✅ Load logs
   const loadLogs = async () => {
     try {
       setLoading(true);
       const data = await get(
-        `/users/audit?page=${page}&limit=${pageSize}&search=${search}&action=${actionFilter}&user=${userFilter}`
+        `/users/audit?page=${page}&limit=${pageSize}&search=${encodeURIComponent(
+          search
+        )}&action=${actionFilter}&user=${userFilter}`
       );
-      setLogs(data.logs || data);
+      setLogs(data.logs || []);
       setPages(data.pages || 1);
       setSelected([]);
+      setError("");
     } catch (err) {
       console.error("Failed to load logs", err);
+      setError("Failed to fetch logs");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔥 Fetch users dynamically (on typing)
+  // ✅ Search users (for filter dropdown)
   const searchUsers = async (query) => {
     try {
       if (!query) {
@@ -68,17 +82,20 @@ export default function AdminLogs() {
   };
 
   useEffect(() => {
-    loadLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, actionFilter, userFilter]);
+    if (isElevated) loadLogs();
+  }, [page, actionFilter, userFilter, isElevated]);
 
   const handleSearch = () => {
     setPage(1);
     loadLogs();
   };
 
-  // ✅ Bulk delete
+  // ✅ Bulk delete (SuperAdmin only)
   const handleBulkDelete = async () => {
+    if (!isSuper) {
+      alert("🚫 Only SuperAdmin can delete logs");
+      return;
+    }
     if (selected.length === 0) return alert("No logs selected");
     if (!window.confirm(`Delete ${selected.length} selected logs?`)) return;
 
@@ -107,6 +124,15 @@ export default function AdminLogs() {
     }
   };
 
+  // 🚫 Restrict unauthorized access
+  if (!isElevated) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Alert severity="error">🚫 Access Denied — Admins Only</Alert>
+      </Box>
+    );
+  }
+
   if (loading) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
@@ -118,19 +144,31 @@ export default function AdminLogs() {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Stack direction="row" justifyContent="space-between" sx={{ mb: 3 }}>
-        <Typography variant="h4">📜 Activity Logs</Typography>
-        <Button
-          variant="contained"
-          color="error"
-          disabled={selected.length === 0}
-          onClick={handleBulkDelete}
-        >
-          🗑 Delete Selected ({selected.length})
-        </Button>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        sx={{ mb: 3 }}
+        alignItems={{ xs: "stretch", sm: "center" }}
+      >
+        <Typography variant="h4">
+          📜 {isSuper ? "System Audit Logs" : "Admin Logs"}
+        </Typography>
+
+        {isSuper && (
+          <Button
+            variant="contained"
+            color="error"
+            disabled={selected.length === 0}
+            onClick={handleBulkDelete}
+          >
+            🗑 Delete Selected ({selected.length})
+          </Button>
+        )}
       </Stack>
 
-      {/* Filters */}
+      {error && <Alert severity="error">{error}</Alert>}
+
+      {/* 🔍 Filters */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
         <TextField
           label="Search logs..."
@@ -141,8 +179,9 @@ export default function AdminLogs() {
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Filter by Action</InputLabel>
+
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Action Type</InputLabel>
           <Select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
@@ -157,14 +196,12 @@ export default function AdminLogs() {
             <MenuItem value="CREATE_RESOURCE">CREATE_RESOURCE</MenuItem>
             <MenuItem value="UPDATE_RESOURCE">UPDATE_RESOURCE</MenuItem>
             <MenuItem value="DELETE_RESOURCE">DELETE_RESOURCE</MenuItem>
-            <MenuItem value="DELETE_USER">DELETE_USER</MenuItem>
             <MenuItem value="CHANGE_ROLE">CHANGE_ROLE</MenuItem>
+            <MenuItem value="DELETE_USER">DELETE_USER</MenuItem>
             <MenuItem value="RESET_PASSWORD">RESET_PASSWORD</MenuItem>
-            <MenuItem value="REPLY_MESSAGE">REPLY_MESSAGE</MenuItem>
           </Select>
         </FormControl>
 
-        {/* 🔥 Autocomplete User Filter */}
         <Autocomplete
           size="small"
           options={userOptions}
@@ -182,38 +219,45 @@ export default function AdminLogs() {
         </Button>
       </Stack>
 
-      {/* Logs Table */}
+      {/* 🧾 Logs Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={selected.length === logs.length && logs.length > 0}
-                  indeterminate={
-                    selected.length > 0 && selected.length < logs.length
-                  }
-                  onChange={toggleSelectAll}
-                />
-              </TableCell>
-              <TableCell>Action</TableCell>
-              <TableCell>Performed By</TableCell>
-              <TableCell>Target User</TableCell>
-              <TableCell>Details</TableCell>
-              <TableCell>Time</TableCell>
+              {isSuper && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selected.length === logs.length && logs.length > 0}
+                    indeterminate={
+                      selected.length > 0 && selected.length < logs.length
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                </TableCell>
+              )}
+              <TableCell><b>Action</b></TableCell>
+              <TableCell><b>Performed By</b></TableCell>
+              <TableCell><b>Target User</b></TableCell>
+              <TableCell><b>Details</b></TableCell>
+              <TableCell><b>Timestamp</b></TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {logs.length > 0 ? (
               logs.map((log) => (
                 <TableRow key={log._id}>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selected.includes(log._id)}
-                      onChange={() => toggleSelect(log._id)}
-                    />
+                  {isSuper && (
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selected.includes(log._id)}
+                        onChange={() => toggleSelect(log._id)}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <Chip label={log.action} size="small" />
                   </TableCell>
-                  <TableCell>{log.action}</TableCell>
                   <TableCell>
                     {log.performedBy
                       ? `${log.performedBy.name} (${log.performedBy.email})`
@@ -227,12 +271,14 @@ export default function AdminLogs() {
                       : "N/A"}
                   </TableCell>
                   <TableCell>{log.details || "-"}</TableCell>
-                  <TableCell>{new Date(log.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {new Date(log.createdAt).toLocaleString()}
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={isSuper ? 6 : 5} align="center">
                   No logs found.
                 </TableCell>
               </TableRow>
@@ -240,6 +286,36 @@ export default function AdminLogs() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* 🔄 Pagination */}
+      {pages > 1 && (
+        <Stack
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={1}
+          sx={{ mt: 3 }}
+        >
+          <Button
+            variant="outlined"
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            ◀ Prev
+          </Button>
+          <Typography>
+            Page {page} of {pages}
+          </Typography>
+          <Button
+            variant="outlined"
+            disabled={page === pages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next ▶
+          </Button>
+        </Stack>
+      )}
     </Box>
   );
 }
+  

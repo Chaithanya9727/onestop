@@ -8,10 +8,10 @@ import {
   Stack,
   CircularProgress,
 } from "@mui/material";
-import "../styles.css";
+// import "../styles.css";
 
 export default function ForgotPassword() {
-  const [step, setStep] = useState(1); // 1 = request OTP, 2 = verify OTP
+  const [step, setStep] = useState(1); // 1 = Request OTP, 2 = Verify & Reset
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -19,8 +19,10 @@ export default function ForgotPassword() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-
   const [timer, setTimer] = useState(0);
+
+  // ✅ Local backend URL
+  const API_BASE = "http://localhost:5000/api/auth";
 
   // Countdown timer for "Resend OTP"
   useEffect(() => {
@@ -30,40 +32,47 @@ export default function ForgotPassword() {
     }
   }, [timer]);
 
+  // --- SEND OTP ---
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setMsg("");
     setErr("");
     setLoading(true);
+
     try {
-      const res = await fetch("https://server-hv9f.onrender.com/api/auth/send-otp", {
+      const res = await fetch(`${API_BASE}/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.message || "Failed to send OTP");
+
       setMsg(data.message);
       setStep(2);
       setTimer(30);
     } catch (error) {
-      setErr(error.message);
+      setErr(error.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
+  // --- VERIFY OTP & RESET PASSWORD ---
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
     setMsg("");
     setErr("");
+
     if (newPassword !== confirm) {
       return setErr("Passwords do not match ❌");
     }
+
     setLoading(true);
     try {
-      // 1️⃣ Verify OTP
-      const verifyRes = await fetch("https://server-hv9f.onrender.com/api/auth/verify-otp", {
+      // Step 1: Verify OTP
+      const verifyRes = await fetch(`${API_BASE}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
@@ -71,8 +80,8 @@ export default function ForgotPassword() {
       const verifyData = await verifyRes.json();
       if (!verifyRes.ok) throw new Error(verifyData.message);
 
-      // 2️⃣ Reset Password
-      const resetRes = await fetch("https://server-hv9f.onrender.com/api/auth/reset-password", {
+      // Step 2: Reset Password
+      const resetRes = await fetch(`${API_BASE}/reset-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: newPassword }),
@@ -89,12 +98,13 @@ export default function ForgotPassword() {
     }
   };
 
+  // --- RESEND OTP ---
   const handleResend = async () => {
     setMsg("");
     setErr("");
     setTimer(30);
     try {
-      const res = await fetch("https://server-hv9f.onrender.com/api/auth/send-otp", {
+      const res = await fetch(`${API_BASE}/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -166,12 +176,13 @@ export default function ForgotPassword() {
               required
               margin="normal"
             />
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
-              <Button
-                type="button"
-                onClick={handleResend}
-                disabled={timer > 0}
-              >
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mt: 1 }}
+            >
+              <Button type="button" onClick={handleResend} disabled={timer > 0}>
                 {timer > 0 ? `Resend OTP in ${timer}s` : "Resend OTP"}
               </Button>
             </Stack>
@@ -182,7 +193,11 @@ export default function ForgotPassword() {
               disabled={loading}
               sx={{ mt: 2 }}
             >
-              {loading ? <CircularProgress size={24} /> : "Verify & Reset Password"}
+              {loading ? (
+                <CircularProgress size={24} />
+              ) : (
+                "Verify & Reset Password"
+              )}
             </Button>
           </form>
         )}

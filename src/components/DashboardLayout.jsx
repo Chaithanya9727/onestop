@@ -12,7 +12,7 @@ import {
 } from "@mui/material"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
-import '../styles.css'
+
 
 const drawerWidth = 220
 
@@ -21,8 +21,8 @@ export default function DashboardLayout({ children }) {
   const navigate = useNavigate()
 
   const menu = [
-    { label: "Resources", path: "/resources", roles: ["student", "admin", "guest"] },
-    { label: "Profile", path: "/profile", roles: ["student", "admin"] },
+    { label: "Resources", path: "/resources", roles: ["candidate", "admin", "guest"] },
+    { label: "Profile", path: "/profile", roles: ["candidate", "admin"] },
     { label: "Admin Panel", path: "/admin", roles: ["admin"] },
   ]
 
