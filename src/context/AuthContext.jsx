@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
-
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -9,13 +8,13 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [loading, setLoading] = useState(true);
 
-  // 🧠 Sync token with localStorage
+  // 🔁 Keep token synced with localStorage
   useEffect(() => {
     if (token) localStorage.setItem("token", token);
     else localStorage.removeItem("token");
   }, [token]);
 
-  // 🔑 Load user info (with flexible response handling)
+  // 🔑 Load current user data
   const loadUser = async () => {
     if (!token) {
       setUser(null);
@@ -26,19 +25,20 @@ export function AuthProvider({ children }) {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/auth/me", {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error("Auth check failed");
-      const data = await res.json();
 
-      // Handle possible nested user object
+      const data = await res.json();
       const userData = data.user || data;
+
       setUser(userData);
       setRole(userData.role?.toLowerCase() || "guest");
+      console.log("✅ Auth Loaded:", userData.role);
     } catch (err) {
-      console.error("⚠️ Auth check failed:", err.message);
+      console.error("⚠️ Auth load error:", err.message);
       logout();
     } finally {
       setLoading(false);
@@ -49,13 +49,15 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [token]);
 
-  // 🚪 Logout (clear session)
+  // 🚪 Logout
   const logout = () => {
     setUser(null);
     setRole("guest");
     setToken("");
-    localStorage.clear();
+    localStorage.removeItem("token");
   };
+
+  const isMentorApproved = user?.role === "mentor" && user?.mentorApproved;
 
   return (
     <AuthContext.Provider
@@ -69,9 +71,10 @@ export function AuthProvider({ children }) {
         logout,
         loading,
         refreshUser: loadUser,
+        isMentorApproved,
       }}
     >
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

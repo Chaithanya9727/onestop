@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -23,6 +24,12 @@ import VerifyOtp from "./pages/verifyOtp.jsx";
 import OauthSuccess from "./pages/OauthSuccess.jsx";
 import AdminMessages from "./pages/AdminMessages.jsx";
 
+// 🧠 Mentor System (updated imports)
+import MentorDashboard from "./pages/MentorDashboard.jsx";
+import ApplyForMentor from "./pages/ApplyForMentor.jsx";
+import BecomeMentor from "./pages/BecomeMentor.jsx"; // ✅ added new redirect file
+import AdminMentorApprovals from "./pages/AdminMentorApprovals.jsx";
+
 // 🧩 Components
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
@@ -37,18 +44,15 @@ import { SocketProvider } from "./socket.jsx";
 
 // 🎨 Theme + Context
 import { CssBaseline, ThemeProvider } from "@mui/material";
-import { useThemeMode } from "./hooks/useThemeMode.js"; // ✅ dynamic mode hook
+import { useThemeMode } from "./hooks/useThemeMode.js";
 import lightTheme from "./theme.js";
 import darkTheme from "./themeDark.js";
 
 export default function App() {
   const location = useLocation();
   const { mode } = useThemeMode();
-
-  // 🎨 Apply light/dark MUI theme
   const activeTheme = mode === "dark" ? darkTheme : lightTheme;
 
-  // 💡 Background glow only on aesthetic routes
   const showBackgroundGlow = [
     "/",
     "/login",
@@ -62,13 +66,9 @@ export default function App() {
       <CssBaseline />
       <ToastProvider>
         <SocketProvider>
-          {/* 🧭 Persistent Navbar with Theme Toggle Inside */}
           <Navbar />
-
-          {/* 🌈 Soft Glow for Auth & Landing Routes */}
           {showBackgroundGlow && <BackgroundGlow />}
 
-          {/* 🎬 Animated Page Transitions */}
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -106,8 +106,9 @@ export default function App() {
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/oauth-success" element={<OauthSuccess />} />
                   <Route path="/messages" element={<Messages />} />
+                  <Route path="/contact" element={<Contact />} />
 
-                  {/* 🔐 Forgot & Reset Password */}
+                  {/* 🔐 Password & Recovery */}
                   <Route
                     path="/forgot-password"
                     element={
@@ -125,14 +126,13 @@ export default function App() {
                     }
                   />
 
-                  {/* 📞 Contact */}
-                  <Route path="/contact" element={<Contact />} />
-
-                  {/* 🔒 Authenticated User Routes */}
+                  {/* 🔒 Authenticated Routes */}
                   <Route
                     path="/dashboard"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        roles={["candidate", "mentor", "admin", "superadmin"]}
+                      >
                         <Dashboard />
                       </ProtectedRoute>
                     }
@@ -140,7 +140,9 @@ export default function App() {
                   <Route
                     path="/resources"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        roles={["candidate", "mentor", "admin", "superadmin"]}
+                      >
                         <Resources />
                       </ProtectedRoute>
                     }
@@ -178,11 +180,37 @@ export default function App() {
                     }
                   />
 
-                  {/* ⚙️ Admin Routes */}
+                  {/* 🧑‍🏫 Mentor Routes */}
+                  <Route
+                    path="/mentor-dashboard"
+                    element={
+                      <ProtectedRoute roles={["mentor"]}>
+                        <MentorDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/apply-for-mentor"
+                    element={
+                      <ProtectedRoute roles={["candidate"]}>
+                        <ApplyForMentor />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/become-mentor"
+                    element={
+                      <ProtectedRoute roles={["candidate"]}>
+                        <BecomeMentor /> {/* ✅ now redirects to /apply-for-mentor */}
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* 👑 Admin Routes */}
                   <Route
                     path="/admin"
                     element={
-                      <ProtectedRoute roleRequired={["admin", "superadmin"]}>
+                      <ProtectedRoute roles={["admin", "superadmin"]}>
                         <AdminPanel />
                       </ProtectedRoute>
                     }
@@ -190,7 +218,7 @@ export default function App() {
                   <Route
                     path="/admin/users"
                     element={
-                      <ProtectedRoute roleRequired={["admin", "superadmin"]}>
+                      <ProtectedRoute roles={["admin", "superadmin"]}>
                         <Users />
                       </ProtectedRoute>
                     }
@@ -198,7 +226,7 @@ export default function App() {
                   <Route
                     path="/admin/messages"
                     element={
-                      <ProtectedRoute roleRequired={["admin", "superadmin"]}>
+                      <ProtectedRoute roles={["admin", "superadmin"]}>
                         <AdminMessages />
                       </ProtectedRoute>
                     }
@@ -206,8 +234,16 @@ export default function App() {
                   <Route
                     path="/admin/logs"
                     element={
-                      <ProtectedRoute roleRequired={["admin", "superadmin"]}>
+                      <ProtectedRoute roles={["admin", "superadmin"]}>
                         <AdminLogs />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/mentor-approvals"
+                    element={
+                      <ProtectedRoute roles={["admin", "superadmin"]}>
+                        <AdminMentorApprovals />
                       </ProtectedRoute>
                     }
                   />
@@ -231,7 +267,7 @@ export default function App() {
                 </Routes>
               </PageTransition>
 
-              {/* 🌍 Persistent Footer */}
+              {/* 🌍 Footer */}
               <Footer />
             </motion.div>
           </AnimatePresence>

@@ -17,7 +17,7 @@ export default function Home() {
 
   // ✅ Welcome sound + cinematic glow
   useEffect(() => {
-    const audio = new Audio("/sounds/welcome.mp3"); // make sure file exists in /public/sounds/
+    const audio = new Audio("/sounds/welcome.mp3");
     audio.volume = 0.35;
     welcomeAudioRef.current = audio;
 
@@ -34,14 +34,11 @@ export default function Home() {
     const tryPlay = async () => {
       try {
         await audio.play();
-        console.log("✅ Welcome sound played automatically");
         triggerGlow();
       } catch {
-        console.warn("Autoplay blocked — waiting for user interaction...");
         const playOnUserAction = async () => {
           try {
             await audio.play();
-            console.log("🎵 Welcome sound triggered by user interaction");
             triggerGlow();
             document.removeEventListener("click", playOnUserAction);
             document.removeEventListener("touchstart", playOnUserAction);
@@ -55,7 +52,6 @@ export default function Home() {
     };
 
     tryPlay();
-
     return () => {
       audio.pause();
       audio.currentTime = 0;
@@ -99,45 +95,11 @@ export default function Home() {
 
     window.addEventListener("mousemove", onMove, { passive: true });
     window.addEventListener("touchmove", onMove, { passive: true });
-
-    const video = videoRef.current;
-    if (video) {
-      video.oncanplaythrough = () => {
-        video.classList.add("loaded");
-        setTimeout(() => (video.style.opacity = "1"), 300);
-      };
-    }
-
-    createFloatingParticles();
-
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("touchmove", onMove);
     };
   }, []);
-
-  const createFloatingParticles = () => {
-    const container = document.getElementById("floating-particles");
-    if (!container) return;
-    const total = 15;
-    for (let i = 0; i < total; i++) {
-      const p = document.createElement("div");
-      p.className = "floating-particle";
-      p.style.cssText = `
-        position:absolute;
-        width:${Math.random() * 6 + 2}px;
-        height:${Math.random() * 6 + 2}px;
-        background:rgba(255,255,255,${Math.random() * 0.4 + 0.1});
-        border-radius:50%;
-        left:${Math.random() * 100}%;
-        top:${Math.random() * 100}%;
-        animation:float ${Math.random() * 20 + 10}s infinite ease-in-out;
-        animation-delay:${Math.random() * 5}s;
-        filter:blur(${Math.random() * 2}px);
-      `;
-      container.appendChild(p);
-    }
-  };
 
   const toggleVideoPlayback = () => {
     if (!videoRef.current) return;
@@ -174,7 +136,6 @@ export default function Home() {
       {/* 🎬 Background Video */}
       <video
         ref={videoRef}
-        id="bg-video"
         autoPlay
         loop
         muted={isMuted}
@@ -196,110 +157,36 @@ export default function Home() {
         <source src="/Home.mp4" type="video/mp4" />
       </video>
 
-      {/* 🌈 Welcome Glow (cinematic flash) */}
-      <div
-        ref={glowRef}
-        style={{
-          position: "absolute",
-          inset: 0,
-          zIndex: -1,
-          background:
-            "radial-gradient(circle at center, rgba(108,99,255,0.25), rgba(255,51,102,0.15), transparent 80%)",
-          filter: "blur(80px)",
-          opacity: 0,
-          transform: "scale(1)",
-          transition: "all 1s ease-out",
-          pointerEvents: "none",
-        }}
-      ></div>
-
-      {/* ✨ Cursor Glow */}
-      <div
-        ref={lightRef}
-        style={{
-          position: "absolute",
-          width: "800px",
-          height: "800px",
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(100,200,255,0.25) 0%, transparent 70%)",
-          filter: "blur(100px)",
-          pointerEvents: "none",
-          transform: "translate(-50%, -50%)",
-          transition: "all 0.15s cubic-bezier(0.23, 1, 0.32, 1)",
-          mixBlendMode: "screen",
-        }}
-      ></div>
-
-      {/* 🌌 Floating Particles */}
-      <Box id="floating-particles" sx={{ position: "absolute", inset: 0, zIndex: -1 }} />
+      {/* ✨ Glow */}
+      <div ref={glowRef} style={{
+        position: "absolute", inset: 0, zIndex: -1,
+        background: "radial-gradient(circle at center, rgba(108,99,255,0.25), rgba(255,51,102,0.15), transparent 80%)",
+        filter: "blur(80px)", opacity: 0, transform: "scale(1)",
+        transition: "all 1s ease-out", pointerEvents: "none"
+      }} />
 
       {/* 🎮 Video Controls */}
       <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10, display: "flex", gap: 1 }}>
-        <IconButton
-          onClick={toggleVideoPlayback}
-          sx={{
-            color: "white",
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            "&:hover": { background: "rgba(255,255,255,0.2)", transform: "scale(1.1)" },
-          }}
-        >
+        <IconButton onClick={toggleVideoPlayback} sx={controlStyle}>
           {isVideoPlaying ? <Pause /> : <PlayArrow />}
         </IconButton>
-        <IconButton
-          onClick={toggleMute}
-          sx={{
-            color: "white",
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            "&:hover": { background: "rgba(255,255,255,0.2)", transform: "scale(1.1)" },
-          }}
-        >
+        <IconButton onClick={toggleMute} sx={controlStyle}>
           {isMuted ? <VolumeOff /> : <VolumeUp />}
         </IconButton>
       </Box>
 
-      {/* 💎 Floating Hero Content */}
-      <Box
-        sx={{
-          position: "relative",
-          textAlign: "center",
-          zIndex: 2,
-          maxWidth: 900,
-          width: "90%",
-          mx: "auto",
-          animation: "glassAppear 1.2s cubic-bezier(0.23, 1, 0.32, 1)",
-        }}
-      >
-        <div
-          ref={flareRef}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: "350px",
-            height: "80px",
-            transform: "translate(-50%, -50%)",
-            background:
-              "radial-gradient(ellipse at center, rgba(255,255,255,0.25), rgba(0,0,0,0) 70%)",
-            mixBlendMode: "screen",
-            filter: "blur(40px)",
-            zIndex: -1,
-            transition: "transform 0.2s ease-out",
-          }}
-        />
-
+      {/* 💎 Hero Section */}
+      <Box sx={{
+        position: "relative", textAlign: "center", zIndex: 2, maxWidth: 900,
+        width: "90%", mx: "auto", animation: "glassAppear 1.2s cubic-bezier(0.23, 1, 0.32, 1)"
+      }}>
         <Typography
           variant="h1"
           fontWeight="900"
           sx={{
             mb: 3,
             fontSize: { xs: "2.5rem", sm: "3.5rem", md: "4.5rem" },
-            background:
-              "linear-gradient(135deg,#FFFFFF,#A8F7FF,#8CE3FF,#CBE8FF,#FFFFFF)",
+            background: "linear-gradient(135deg,#FFFFFF,#A8F7FF,#8CE3FF,#CBE8FF,#FFFFFF)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             textShadow: "0 0 60px rgba(168,247,255,0.6)",
@@ -311,58 +198,51 @@ export default function Home() {
         <Typography
           variant="h5"
           sx={{
-            mb: 6,
-            color: "rgba(255,255,255,0.9)",
-            fontWeight: 300,
-            maxWidth: 700,
-            mx: "auto",
-            lineHeight: 1.7,
-            textShadow: "0 0 20px rgba(0,255,255,0.3)",
-            backdropFilter: "blur(8px)",
+            mb: 6, color: "rgba(255,255,255,0.9)", fontWeight: 300,
+            maxWidth: 700, mx: "auto", lineHeight: 1.7,
+            textShadow: "0 0 20px rgba(0,255,255,0.3)", backdropFilter: "blur(8px)",
           }}
         >
           Experience the future of campus life with our immersive digital ecosystem.
-          Connecting candidates, mentors, and administrators through cutting-edge
-          technology and elegant design.
+          Connecting candidates, mentors, and administrators through cutting-edge technology and elegant design.
         </Typography>
 
+        {/* 🌈 Action Buttons */}
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="center" spacing={3}>
           <AdvancedGlassButton
-            label="Launch Experience"
+            label="Login"
             onClick={() => navigate("/login")}
-            gradient="linear-gradient(135deg, #667eea, #764ba2)"
-            glowColor="rgba(100,200,255,0.8)"
+            gradient="linear-gradient(135deg, #00c6ff, #0072ff)"
+            glowColor="rgba(0,150,255,0.8)"
+          />
+          <AdvancedGlassButton
+            label="Signup"
+            onClick={() => navigate("/register")}
+            gradient="linear-gradient(135deg, #f093fb, #f5576c)"
+            glowColor="rgba(255,100,150,0.8)"
           />
           <AdvancedGlassButton
             label="Explore Campus"
             onClick={() => navigate("/contact")}
-            gradient="linear-gradient(135deg, #f093fb, #f5576c)"
-            glowColor="rgba(255,255,255,0.6)"
+            gradient="linear-gradient(135deg, #43e97b, #38f9d7)"
+            glowColor="rgba(100,255,200,0.8)"
           />
         </Stack>
       </Box>
-
-      <style jsx>{`
-        @keyframes glassAppear {
-          from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(180deg); }
-        }
-      `}</style>
     </Box>
   );
 }
 
-/* ⚡ Button Component */
+/* 🪄 Video control style */
+const controlStyle = {
+  color: "white",
+  background: "rgba(255,255,255,0.1)",
+  backdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.2)",
+  "&:hover": { background: "rgba(255,255,255,0.2)", transform: "scale(1.1)" },
+};
+
+/* ⚡ Glass Button Component */
 function AdvancedGlassButton({ label, onClick, glowColor, gradient }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -384,8 +264,7 @@ function AdvancedGlassButton({ label, onClick, glowColor, gradient }) {
         color: "rgba(255,255,255,0.95)",
         letterSpacing: "0.8px",
         transition: "all 0.5s cubic-bezier(0.23, 1, 0.32, 1)",
-        background:
-          "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))",
         border: "1.5px solid rgba(255,255,255,0.25)",
         backdropFilter: "blur(25px) saturate(180%)",
         boxShadow: `

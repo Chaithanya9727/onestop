@@ -24,11 +24,12 @@ import {
 } from "@mui/material";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
-
+import { useToast } from "../components/ToastProvider";
 
 export default function AdminLogs() {
   const { get, del } = useApi();
   const { role: userRole } = useAuth();
+  const { showToast } = useToast();
 
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,6 @@ export default function AdminLogs() {
   const [error, setError] = useState("");
 
   const pageSize = 10;
-
   const isElevated = ["admin", "superadmin"].includes(userRole?.toLowerCase());
   const isSuper = userRole?.toLowerCase() === "superadmin";
 
@@ -51,7 +51,7 @@ export default function AdminLogs() {
     try {
       setLoading(true);
       const data = await get(
-        `/users/audit?page=${page}&limit=${pageSize}&search=${encodeURIComponent(
+        `/audit?page=${page}&limit=${pageSize}&search=${encodeURIComponent(
           search
         )}&action=${actionFilter}&user=${userFilter}`
       );
@@ -61,13 +61,17 @@ export default function AdminLogs() {
       setError("");
     } catch (err) {
       console.error("Failed to load logs", err);
-      setError("Failed to fetch logs");
+      setError("Failed to fetch logs ❌");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Search users (for filter dropdown)
+  useEffect(() => {
+    if (isElevated) loadLogs();
+  }, [page, actionFilter, userFilter, isElevated]);
+
+  // ✅ Search users for filter
   const searchUsers = async (query) => {
     try {
       if (!query) {
@@ -81,32 +85,49 @@ export default function AdminLogs() {
     }
   };
 
-  useEffect(() => {
-    if (isElevated) loadLogs();
-  }, [page, actionFilter, userFilter, isElevated]);
-
   const handleSearch = () => {
     setPage(1);
     loadLogs();
   };
 
-  // ✅ Bulk delete (SuperAdmin only)
+  // ✅ Bulk delete selected logs
   const handleBulkDelete = async () => {
-    if (!isSuper) {
-      alert("🚫 Only SuperAdmin can delete logs");
-      return;
-    }
+    if (!isSuper) return alert("🚫 Only SuperAdmin can delete logs");
     if (selected.length === 0) return alert("No logs selected");
     if (!window.confirm(`Delete ${selected.length} selected logs?`)) return;
 
     try {
-      await del("/users/audit/bulk", { ids: selected });
+      const res = await del("/audit/bulk", { ids: selected });
+      showToast(res.message || "Selected logs deleted ✅", "success");
       setLogs((prev) => prev.filter((log) => !selected.includes(log._id)));
       setSelected([]);
-      alert("Selected logs deleted ✅");
     } catch (err) {
       console.error("Bulk delete failed", err);
-      alert("Failed to delete logs");
+      showToast("Failed to delete selected logs ❌", "error");
+    }
+  };
+
+  // ✅ Bulk delete all filtered logs
+  const handleDeleteFiltered = async () => {
+    if (!isSuper)
+      return showToast("🚫 Only SuperAdmin can delete all filtered logs", "warning");
+
+    if (
+      !window.confirm(
+        "⚠️ Are you sure you want to delete ALL logs matching your current filters? This cannot be undone!"
+      )
+    )
+      return;
+
+    try {
+      const res = await del(
+        `/audit/bulk/all?search=${encodeURIComponent(search)}&action=${actionFilter}&user=${userFilter}`
+      );
+      showToast(res.message || "All filtered logs deleted ✅", "success");
+      await loadLogs();
+    } catch (err) {
+      console.error("Delete all filtered logs failed", err);
+      showToast("Failed to delete filtered logs ❌", "error");
     }
   };
 
@@ -136,7 +157,7 @@ export default function AdminLogs() {
   if (loading) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
-        <CircularProgress />
+        <CircularProgress sx={{ color: "#6c63ff" }} />
         <Typography sx={{ mt: 2 }}>Loading activity logs...</Typography>
       </Box>
     );
@@ -147,22 +168,31 @@ export default function AdminLogs() {
       <Stack
         direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
-        sx={{ mb: 3 }}
         alignItems={{ xs: "stretch", sm: "center" }}
+        sx={{ mb: 3 }}
       >
-        <Typography variant="h4">
+        <Typography variant="h4" fontWeight={700}>
           📜 {isSuper ? "System Audit Logs" : "Admin Logs"}
         </Typography>
 
         {isSuper && (
-          <Button
-            variant="contained"
-            color="error"
-            disabled={selected.length === 0}
-            onClick={handleBulkDelete}
-          >
-            🗑 Delete Selected ({selected.length})
-          </Button>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={selected.length === 0}
+              onClick={handleBulkDelete}
+            >
+              🗑 Delete Selected ({selected.length})
+            </Button>
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={handleDeleteFiltered}
+            >
+              🧹 Delete All Filtered Logs
+            </Button>
+          </Stack>
         )}
       </Stack>
 
@@ -187,18 +217,12 @@ export default function AdminLogs() {
             onChange={(e) => setActionFilter(e.target.value)}
           >
             <MenuItem value="all">All</MenuItem>
+            <MenuItem value="MENTOR_APPLY">MENTOR_APPLY</MenuItem>
+            <MenuItem value="MENTOR_APPROVED">MENTOR_APPROVED</MenuItem>
+            <MenuItem value="MENTOR_REJECTED">MENTOR_REJECTED</MenuItem>
+            <MenuItem value="MENTOR_FEEDBACK">MENTOR_FEEDBACK</MenuItem>
             <MenuItem value="CREATE_NOTICE">CREATE_NOTICE</MenuItem>
-            <MenuItem value="UPDATE_NOTICE">UPDATE_NOTICE</MenuItem>
-            <MenuItem value="DELETE_NOTICE">DELETE_NOTICE</MenuItem>
-            <MenuItem value="CREATE_EVENT">CREATE_EVENT</MenuItem>
-            <MenuItem value="UPDATE_EVENT">UPDATE_EVENT</MenuItem>
-            <MenuItem value="DELETE_EVENT">DELETE_EVENT</MenuItem>
-            <MenuItem value="CREATE_RESOURCE">CREATE_RESOURCE</MenuItem>
-            <MenuItem value="UPDATE_RESOURCE">UPDATE_RESOURCE</MenuItem>
-            <MenuItem value="DELETE_RESOURCE">DELETE_RESOURCE</MenuItem>
-            <MenuItem value="CHANGE_ROLE">CHANGE_ROLE</MenuItem>
             <MenuItem value="DELETE_USER">DELETE_USER</MenuItem>
-            <MenuItem value="RESET_PASSWORD">RESET_PASSWORD</MenuItem>
           </Select>
         </FormControl>
 
@@ -256,7 +280,7 @@ export default function AdminLogs() {
                     </TableCell>
                   )}
                   <TableCell>
-                    <Chip label={log.action} size="small" />
+                    <Chip label={log.action} size="small" color="primary" />
                   </TableCell>
                   <TableCell>
                     {log.performedBy
@@ -318,4 +342,3 @@ export default function AdminLogs() {
     </Box>
   );
 }
-  

@@ -14,6 +14,8 @@ import {
   Box,
   IconButton,
   InputAdornment,
+  MenuItem,
+  Alert,
 } from "@mui/material";
 import { Visibility, VisibilityOff, GitHub, Google, Email } from "@mui/icons-material";
 import { motion } from "framer-motion";
@@ -23,7 +25,11 @@ export default function Login() {
   const location = useLocation();
   const { setToken } = useAuth();
 
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    selectedRole: "",
+  });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -55,10 +61,18 @@ export default function Login() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.message || "Login failed");
+
       setToken(data.token);
-      setMsg("✅ Login successful! Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1000);
+      setMsg(`✅ Welcome back, ${data.name || "User"}! Redirecting...`);
+
+      // 🔀 Redirect based on role
+      setTimeout(() => {
+        if (data.role === "admin" || data.role === "superadmin") navigate("/admin");
+        else if (data.role === "mentor") navigate("/mentor/dashboard");
+        else navigate("/dashboard");
+      }, 1000);
     } catch (error) {
       setErr(error.message);
     } finally {
@@ -88,7 +102,7 @@ export default function Login() {
       <BackgroundGlow />
       <Card
         sx={{
-          maxWidth: 420,
+          maxWidth: 440,
           width: "100%",
           borderRadius: 4,
           boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
@@ -101,8 +115,8 @@ export default function Login() {
             🔐 Login to OneStop Hub
           </Typography>
 
-          {msg && <Typography color="green" textAlign="center">{msg}</Typography>}
-          {err && <Typography color="red" textAlign="center">{err}</Typography>}
+          {msg && <Alert severity="success" sx={{ mb: 2 }}>{msg}</Alert>}
+          {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
 
           <form onSubmit={handleSubmit}>
             <TextField
@@ -139,6 +153,25 @@ export default function Login() {
                 ),
               }}
             />
+
+            {/* 🎓 Role Selection Dropdown */}
+            <TextField
+              select
+              fullWidth
+              label="Select Role"
+              name="selectedRole"
+              value={form.selectedRole}
+              onChange={handleChange}
+              margin="normal"
+              required
+              helperText="Select the role assigned to your account"
+            >
+              <MenuItem value="candidate">Student</MenuItem>
+              <MenuItem value="mentor">Mentor</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="superadmin">Super Admin</MenuItem>
+              <MenuItem value="recruiter">Recruiter</MenuItem>
+            </TextField>
 
             <Button
               type="submit"

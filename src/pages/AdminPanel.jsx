@@ -29,6 +29,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Snackbar,
 } from "@mui/material";
 import {
   SupervisorAccount,
@@ -52,7 +53,6 @@ import { useNavigate } from "react-router-dom";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 
-
 export default function AdminPanel() {
   const { role, logout } = useAuth();
   const { get, put, del, post } = useApi();
@@ -72,6 +72,7 @@ export default function AdminPanel() {
   });
   const [msg, setMsg] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
 
   // ✅ Load users
   const loadUsers = async () => {
@@ -109,6 +110,11 @@ export default function AdminPanel() {
     if (role === "admin" || role === "superadmin") load();
   }, [role]);
 
+  // ✅ Snackbar helper
+  const showToast = (message, type = "success") => {
+    setToast({ open: true, message, type });
+  };
+
   // ✅ Create Admin
   const handleCreateAdmin = async () => {
     setMsg("");
@@ -121,27 +127,26 @@ export default function AdminPanel() {
 
     try {
       await post("/users/create-admin", newAdmin);
-      setMsg("✅ Admin created successfully!");
+      showToast("✅ Admin created successfully!", "success");
       await loadUsers();
       setNewAdmin({ name: "", email: "", password: "", mobile: "" });
-      document.activeElement?.blur();
       setOpenDialog(false);
     } catch (err) {
       console.error("Create admin failed:", err);
-      setErrMsg("Failed to create admin ❌");
+      showToast("❌ Failed to create admin", "error");
     }
   };
 
   // ✅ Role Change
   const handleRoleChange = async (id, newRole) => {
     if (role !== "superadmin")
-      return alert("Only SuperAdmin can change roles 🚫");
+      return showToast("🚫 Only SuperAdmin can change roles", "error");
     try {
       await put(`/users/${id}/role`, { role: newRole });
       await loadUsers();
-      alert("Role updated successfully ✅");
+      showToast("✅ Role updated successfully!");
     } catch {
-      alert("Failed to update role ❌");
+      showToast("❌ Failed to update role", "error");
     }
   };
 
@@ -151,30 +156,30 @@ export default function AdminPanel() {
     if (!newPass) return;
     try {
       await put(`/users/${id}/reset-password`, { newPassword: newPass });
-      alert("Password reset successfully ✅");
+      showToast("✅ Password reset successfully!");
     } catch {
-      alert("Failed to reset password ❌");
+      showToast("❌ Failed to reset password", "error");
     }
   };
 
   // ✅ Delete User
   const handleDeleteUser = async (id) => {
     if (role !== "superadmin")
-      return alert("Only SuperAdmin can delete users 🚫");
+      return showToast("🚫 Only SuperAdmin can delete users", "error");
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await del(`/users/${id}`);
       await loadUsers();
-      alert("User deleted successfully ❌");
+      showToast("✅ User deleted successfully", "success");
     } catch {
-      alert("Failed to delete user ❌");
+      showToast("❌ Failed to delete user", "error");
     }
   };
 
   // 📊 Stats
   const totalUsers = users.length;
   const totalAdmins = users.filter((u) => u.role === "admin").length;
-  const totalcandidates = users.filter((u) => u.role === "candidate").length;
+  const totalCandidates = users.filter((u) => u.role === "candidate").length;
   const totalLogs = logs.length;
 
   // 🥧 Pie Chart
@@ -235,29 +240,20 @@ export default function AdminPanel() {
           🏫 OneStop Admin
         </Typography>
         <List>
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedMenu === "dashboard"}
-              onClick={() => setSelectedMenu("dashboard")}
-            >
-              <ListItemIcon>
-                <Dashboard sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Dashboard" />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedMenu === "users"}
-              onClick={() => setSelectedMenu("users")}
-            >
-              <ListItemIcon>
-                <People sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Users" />
-            </ListItemButton>
-          </ListItem>
+          {[
+            { id: "dashboard", label: "Dashboard", icon: <Dashboard /> },
+            { id: "users", label: "Users", icon: <People /> },
+          ].map((item) => (
+            <ListItem key={item.id} disablePadding>
+              <ListItemButton
+                selected={selectedMenu === item.id}
+                onClick={() => setSelectedMenu(item.id)}
+              >
+                <ListItemIcon sx={{ color: "white" }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            </ListItem>
+          ))}
 
           <ListItem disablePadding>
             <ListItemButton onClick={() => navigate("/admin/messages")}>
@@ -320,7 +316,7 @@ export default function AdminPanel() {
               {[
                 { title: "Total Users", count: totalUsers, color: "#007bff", icon: <People /> },
                 { title: "Admins", count: totalAdmins, color: "#ff7b00", icon: <SupervisorAccount /> },
-                { title: "candidates", count: totalcandidates, color: "#22c55e", icon: <School /> },
+                { title: "Candidates", count: totalCandidates, color: "#22c55e", icon: <School /> },
                 { title: "Audit Logs", count: totalLogs, color: "#8b5cf6", icon: <Assignment /> },
               ].map((stat, i) => (
                 <Grid item xs={12} sm={6} md={3} key={i}>
@@ -441,7 +437,7 @@ export default function AdminPanel() {
                           >
                             <MenuItem value="superadmin">SuperAdmin</MenuItem>
                             <MenuItem value="admin">Admin</MenuItem>
-                            <MenuItem value="candidate">candidate</MenuItem>
+                            <MenuItem value="candidate">Candidate</MenuItem>
                           </Select>
                         )}
                       </TableCell>
@@ -527,6 +523,23 @@ export default function AdminPanel() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* ✅ Snackbar Notification */}
+        <Snackbar
+          open={toast.open}
+          autoHideDuration={3000}
+          onClose={() => setToast({ ...toast, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setToast({ ...toast, open: false })}
+            severity={toast.type}
+            variant="filled"
+            sx={{ borderRadius: 2 }}
+          >
+            {toast.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Box>
   );
