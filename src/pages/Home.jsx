@@ -192,7 +192,7 @@ export default function Home() {
             textShadow: "0 0 60px rgba(168,247,255,0.6)",
           }}
         >
-          OneStop Smart Campus
+          OneStop Hub
         </Typography>
 
         <Typography

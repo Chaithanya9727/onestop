@@ -1,3 +1,4 @@
+// src/pages/AdminPanel.jsx
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -29,7 +30,6 @@ import {
   Grid,
   Card,
   CardContent,
-  Snackbar,
 } from "@mui/material";
 import {
   SupervisorAccount,
@@ -40,6 +40,7 @@ import {
   Dashboard,
   Logout,
   WarningAmber,
+  LockReset,
 } from "@mui/icons-material";
 import {
   PieChart,
@@ -52,10 +53,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/ToastProvider";
 
 export default function AdminPanel() {
   const { role, logout } = useAuth();
   const { get, put, del, post } = useApi();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [users, setUsers] = useState([]);
@@ -72,7 +75,6 @@ export default function AdminPanel() {
   });
   const [msg, setMsg] = useState("");
   const [errMsg, setErrMsg] = useState("");
-  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
 
   // ✅ Load users
   const loadUsers = async () => {
@@ -110,11 +112,6 @@ export default function AdminPanel() {
     if (role === "admin" || role === "superadmin") load();
   }, [role]);
 
-  // ✅ Snackbar helper
-  const showToast = (message, type = "success") => {
-    setToast({ open: true, message, type });
-  };
-
   // ✅ Create Admin
   const handleCreateAdmin = async () => {
     setMsg("");
@@ -127,52 +124,58 @@ export default function AdminPanel() {
 
     try {
       await post("/users/create-admin", newAdmin);
-      showToast("✅ Admin created successfully!", "success");
+      setMsg("✅ Admin created successfully!");
       await loadUsers();
       setNewAdmin({ name: "", email: "", password: "", mobile: "" });
+      document.activeElement?.blur();
       setOpenDialog(false);
     } catch (err) {
       console.error("Create admin failed:", err);
-      showToast("❌ Failed to create admin", "error");
+      setErrMsg("Failed to create admin ❌");
     }
   };
 
   // ✅ Role Change
   const handleRoleChange = async (id, newRole) => {
     if (role !== "superadmin")
-      return showToast("🚫 Only SuperAdmin can change roles", "error");
+      return showToast("Only SuperAdmin can change roles 🚫", "error");
     try {
       await put(`/users/${id}/role`, { role: newRole });
       await loadUsers();
-      showToast("✅ Role updated successfully!");
+      showToast("Role updated successfully ✅", "success");
     } catch {
-      showToast("❌ Failed to update role", "error");
+      showToast("Failed to update role ❌", "error");
     }
   };
 
-  // ✅ Reset Password
-  const handleResetPassword = async (id) => {
-    const newPass = prompt("Enter a new temporary password:");
-    if (!newPass) return;
+  // ✅ Reset Password (Auto-generated + Email sent)
+  const handleResetPassword = async (id, email) => {
+    if (role !== "superadmin")
+      return showToast("Only SuperAdmin can reset passwords 🚫", "error");
+
+    if (!window.confirm(`Reset password for ${email}?`)) return;
+
     try {
-      await put(`/users/${id}/reset-password`, { newPassword: newPass });
-      showToast("✅ Password reset successfully!");
-    } catch {
-      showToast("❌ Failed to reset password", "error");
+      const res = await put(`/users/${id}/reset-password`);
+      await loadUsers();
+      showToast(res.message || "Temporary password emailed to user ✅", "success");
+    } catch (err) {
+      console.error("Reset password failed:", err);
+      showToast("Failed to reset password ❌", "error");
     }
   };
 
   // ✅ Delete User
   const handleDeleteUser = async (id) => {
     if (role !== "superadmin")
-      return showToast("🚫 Only SuperAdmin can delete users", "error");
+      return showToast("Only SuperAdmin can delete users 🚫", "error");
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await del(`/users/${id}`);
       await loadUsers();
-      showToast("✅ User deleted successfully", "success");
+      showToast("User deleted successfully ❌", "success");
     } catch {
-      showToast("❌ Failed to delete user", "error");
+      showToast("Failed to delete user ❌", "error");
     }
   };
 
@@ -240,20 +243,29 @@ export default function AdminPanel() {
           🏫 OneStop Admin
         </Typography>
         <List>
-          {[
-            { id: "dashboard", label: "Dashboard", icon: <Dashboard /> },
-            { id: "users", label: "Users", icon: <People /> },
-          ].map((item) => (
-            <ListItem key={item.id} disablePadding>
-              <ListItemButton
-                selected={selectedMenu === item.id}
-                onClick={() => setSelectedMenu(item.id)}
-              >
-                <ListItemIcon sx={{ color: "white" }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={selectedMenu === "dashboard"}
+              onClick={() => setSelectedMenu("dashboard")}
+            >
+              <ListItemIcon>
+                <Dashboard sx={{ color: "white" }} />
+              </ListItemIcon>
+              <ListItemText primary="Dashboard" />
+            </ListItemButton>
+          </ListItem>
+
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={selectedMenu === "users"}
+              onClick={() => setSelectedMenu("users")}
+            >
+              <ListItemIcon>
+                <People sx={{ color: "white" }} />
+              </ListItemIcon>
+              <ListItemText primary="Users" />
+            </ListItemButton>
+          </ListItem>
 
           <ListItem disablePadding>
             <ListItemButton onClick={() => navigate("/admin/messages")}>
@@ -311,7 +323,6 @@ export default function AdminPanel() {
         {/* ================= Dashboard ================= */}
         {selectedMenu === "dashboard" && (
           <>
-            {/* 🔹 Analytics Cards */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
               {[
                 { title: "Total Users", count: totalUsers, color: "#007bff", icon: <People /> },
@@ -329,15 +340,11 @@ export default function AdminPanel() {
                     }}
                   >
                     <CardContent>
-                      <Box sx={{ fontSize: 40, color: stat.color }}>
-                        {stat.icon}
-                      </Box>
+                      <Box sx={{ fontSize: 40, color: stat.color }}>{stat.icon}</Box>
                       <Typography variant="h5" fontWeight="bold">
                         {stat.count}
                       </Typography>
-                      <Typography variant="subtitle1">
-                        {stat.title}
-                      </Typography>
+                      <Typography variant="subtitle1">{stat.title}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -446,7 +453,8 @@ export default function AdminPanel() {
                           <Button
                             variant="outlined"
                             size="small"
-                            onClick={() => handleResetPassword(u._id)}
+                            startIcon={<LockReset />}
+                            onClick={() => handleResetPassword(u._id, u.email)}
                           >
                             Reset Password
                           </Button>
@@ -523,23 +531,6 @@ export default function AdminPanel() {
             </Button>
           </DialogActions>
         </Dialog>
-
-        {/* ✅ Snackbar Notification */}
-        <Snackbar
-          open={toast.open}
-          autoHideDuration={3000}
-          onClose={() => setToast({ ...toast, open: false })}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          <Alert
-            onClose={() => setToast({ ...toast, open: false })}
-            severity={toast.type}
-            variant="filled"
-            sx={{ borderRadius: 2 }}
-          >
-            {toast.message}
-          </Alert>
-        </Snackbar>
       </Box>
     </Box>
   );
