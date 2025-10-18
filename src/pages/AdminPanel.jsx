@@ -23,6 +23,7 @@ import {
   DialogActions,
   Drawer,
   List,
+  ListSubheader,
   ListItem,
   ListItemButton,
   ListItemIcon,
@@ -36,17 +37,19 @@ import {
   People,
   School,
   Assignment,
-  Mail,
   Dashboard,
   Logout,
   WarningAmber,
   LockReset,
+  Inbox,
+  Send,
+  MarkunreadMailbox,
 } from "@mui/icons-material";
 import {
   PieChart,
   Pie,
   Cell,
-  Tooltip,
+  Tooltip as ReTooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -127,7 +130,6 @@ export default function AdminPanel() {
       setMsg("✅ Admin created successfully!");
       await loadUsers();
       setNewAdmin({ name: "", email: "", password: "", mobile: "" });
-      document.activeElement?.blur();
       setOpenDialog(false);
     } catch (err) {
       console.error("Create admin failed:", err);
@@ -148,7 +150,7 @@ export default function AdminPanel() {
     }
   };
 
-  // ✅ Reset Password (Auto-generated + Email sent)
+  // ✅ Reset Password
   const handleResetPassword = async (id, email) => {
     if (role !== "superadmin")
       return showToast("Only SuperAdmin can reset passwords 🚫", "error");
@@ -194,14 +196,7 @@ export default function AdminPanel() {
     name: key.replace("_", " "),
     value: logSummary[key],
   }));
-  const COLORS = [
-    "#3b82f6",
-    "#ef4444",
-    "#22c55e",
-    "#facc15",
-    "#8b5cf6",
-    "#ec4899",
-  ];
+  const COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#facc15", "#8b5cf6", "#ec4899"];
 
   if (loading)
     return (
@@ -221,90 +216,8 @@ export default function AdminPanel() {
     );
 
   return (
-    <Box sx={{ display: "flex", height: "100vh" }}>
-      {/* 🧭 Sidebar */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: 240,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: 240,
-            backgroundColor: "#0d1b2a",
-            color: "white",
-            borderRight: "none",
-          },
-        }}
-      >
-        <Typography
-          variant="h6"
-          sx={{ p: 2, textAlign: "center", fontWeight: "bold" }}
-        >
-          🏫 OneStop Admin
-        </Typography>
-        <List>
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedMenu === "dashboard"}
-              onClick={() => setSelectedMenu("dashboard")}
-            >
-              <ListItemIcon>
-                <Dashboard sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Dashboard" />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={selectedMenu === "users"}
-              onClick={() => setSelectedMenu("users")}
-            >
-              <ListItemIcon>
-                <People sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Users" />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem disablePadding>
-            <ListItemButton onClick={() => navigate("/admin/messages")}>
-              <ListItemIcon>
-                <Mail sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Messages" />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem disablePadding>
-            <ListItemButton onClick={() => navigate("/admin/logs")}>
-              <ListItemIcon>
-                <Assignment sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Audit Logs" />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem disablePadding>
-            <ListItemButton onClick={logout}>
-              <ListItemIcon>
-                <Logout sx={{ color: "white" }} />
-              </ListItemIcon>
-              <ListItemText primary="Logout" />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Drawer>
-
-      {/* 🧾 Main Dashboard */}
-      <Box
-        sx={{
-          flexGrow: 1,
-          p: 4,
-          backgroundColor: "#f5f6fa",
-          overflowY: "auto",
-        }}
-      >
+    <Box sx={{ display: "flex", height: "100%" }}>
+      <Box sx={{ flexGrow: 1, p: 4, backgroundColor: "#f5f6fa" }}>
         <Typography variant="h4" gutterBottom>
           👑 {role === "superadmin" ? "SuperAdmin Control Panel" : "Admin Panel"}
         </Typography>
@@ -320,217 +233,68 @@ export default function AdminPanel() {
           </Alert>
         )}
 
-        {/* ================= Dashboard ================= */}
-        {selectedMenu === "dashboard" && (
-          <>
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              {[
-                { title: "Total Users", count: totalUsers, color: "#007bff", icon: <People /> },
-                { title: "Admins", count: totalAdmins, color: "#ff7b00", icon: <SupervisorAccount /> },
-                { title: "Candidates", count: totalCandidates, color: "#22c55e", icon: <School /> },
-                { title: "Audit Logs", count: totalLogs, color: "#8b5cf6", icon: <Assignment /> },
-              ].map((stat, i) => (
-                <Grid item xs={12} sm={6} md={3} key={i}>
-                  <Card
-                    sx={{
-                      borderRadius: "18px",
-                      background: `linear-gradient(135deg, ${stat.color}20, ${stat.color}60)`,
-                      boxShadow: `0 8px 25px ${stat.color}40`,
-                      textAlign: "center",
-                    }}
-                  >
-                    <CardContent>
-                      <Box sx={{ fontSize: 40, color: stat.color }}>{stat.icon}</Box>
-                      <Typography variant="h5" fontWeight="bold">
-                        {stat.count}
-                      </Typography>
-                      <Typography variant="subtitle1">{stat.title}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* 🥧 Pie Chart */}
-            <Paper sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                🪶 Audit Log Activity Overview
-              </Typography>
-              {chartData.length === 0 ? (
-                <Typography color="text.secondary">
-                  No audit data available yet.
-                </Typography>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(1)}%`
-                      }
-                      outerRadius={120}
-                      dataKey="value"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </Paper>
-          </>
-        )}
-
-        {/* ================= Manage Users ================= */}
-        {selectedMenu === "users" && (
-          <Paper sx={{ p: { xs: 2, md: 3 } }}>
-            {role === "superadmin" && (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setOpenDialog(true)}
-                sx={{ mb: 2 }}
+        {/* 🧾 Dashboard Content */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {[{ title: "Total Users", count: totalUsers, color: "#007bff", icon: <People /> },
+            { title: "Admins", count: totalAdmins, color: "#ff7b00", icon: <SupervisorAccount /> },
+            { title: "Candidates", count: totalCandidates, color: "#22c55e", icon: <School /> },
+            { title: "Audit Logs", count: totalLogs, color: "#8b5cf6", icon: <Assignment /> },
+          ].map((stat, i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Card
+                sx={{
+                  borderRadius: "18px",
+                  background: `linear-gradient(135deg, ${stat.color}20, ${stat.color}60)`,
+                  boxShadow: `0 8px 25px ${stat.color}40`,
+                  textAlign: "center",
+                }}
               >
-                ➕ Create New Admin
+                <CardContent>
+                  <Box sx={{ fontSize: 40, color: stat.color }}>{stat.icon}</Box>
+                  <Typography variant="h5" fontWeight="bold">
+                    {stat.count}
+                  </Typography>
+                  <Typography variant="subtitle1">{stat.title}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* ✉️ Quick Access */}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ p: 2 }}>
+              <Typography variant="h6">📥 Mailbox</Typography>
+              <Typography color="text.secondary">
+                View internal mails sent by admins/superadmins.
+              </Typography>
+              <Button
+                sx={{ mt: 2 }}
+                variant="contained"
+                onClick={() => navigate("mailbox")} // ✅ relative
+              >
+                Open Mailbox
               </Button>
-            )}
-
-            {users.length === 0 ? (
-              <Typography>No users found.</Typography>
-            ) : (
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell><b>Name</b></TableCell>
-                    <TableCell><b>Email</b></TableCell>
-                    <TableCell><b>Role</b></TableCell>
-                    <TableCell><b>Actions</b></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map((u) => (
-                    <TableRow key={u._id}>
-                      <TableCell>{u.name}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={u.role}
-                          color={
-                            u.role === "superadmin"
-                              ? "success"
-                              : u.role === "admin"
-                              ? "warning"
-                              : "primary"
-                          }
-                          size="small"
-                        />
-                        {role === "superadmin" && (
-                          <Select
-                            size="small"
-                            value={u.role}
-                            onChange={(e) =>
-                              handleRoleChange(u._id, e.target.value)
-                            }
-                            sx={{ ml: 1 }}
-                          >
-                            <MenuItem value="superadmin">SuperAdmin</MenuItem>
-                            <MenuItem value="admin">Admin</MenuItem>
-                            <MenuItem value="candidate">Candidate</MenuItem>
-                          </Select>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<LockReset />}
-                            onClick={() => handleResetPassword(u._id, u.email)}
-                          >
-                            Reset Password
-                          </Button>
-                          {role === "superadmin" && (
-                            <Button
-                              variant="contained"
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteUser(u._id)}
-                            >
-                              Delete
-                            </Button>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Paper>
-        )}
-
-        {/* ================= Create Admin Dialog ================= */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-          <DialogTitle>➕ Create New Admin</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Full Name"
-              fullWidth
-              margin="dense"
-              value={newAdmin.name}
-              onChange={(e) =>
-                setNewAdmin({ ...newAdmin, name: e.target.value })
-              }
-            />
-            <TextField
-              label="Email"
-              fullWidth
-              margin="dense"
-              value={newAdmin.email}
-              onChange={(e) =>
-                setNewAdmin({ ...newAdmin, email: e.target.value })
-              }
-            />
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              margin="dense"
-              value={newAdmin.password}
-              onChange={(e) =>
-                setNewAdmin({ ...newAdmin, password: e.target.value })
-              }
-            />
-            <TextField
-              label="Mobile Number"
-              fullWidth
-              margin="dense"
-              value={newAdmin.mobile}
-              onChange={(e) =>
-                setNewAdmin({ ...newAdmin, mobile: e.target.value })
-              }
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-            <Button
-              onClick={handleCreateAdmin}
-              variant="contained"
-              color="primary"
-            >
-              Create
-            </Button>
-          </DialogActions>
-        </Dialog>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Card sx={{ p: 2 }}>
+              <Typography variant="h6">✉️ Compose Internal Mail</Typography>
+              <Typography color="text.secondary">
+                Send internal mail to other admins/superadmins.
+              </Typography>
+              <Button
+                sx={{ mt: 2 }}
+                variant="contained"
+                color="secondary"
+                onClick={() => navigate("send-mail")} // ✅ relative
+              >
+                Compose
+              </Button>
+            </Card>
+          </Grid>
+        </Grid>
       </Box>
     </Box>
   );

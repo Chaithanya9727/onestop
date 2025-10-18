@@ -14,9 +14,16 @@ import {
   CircularProgress,
   Stack,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
 import useApi from "../hooks/useApi";
+import { LockReset, Delete, Edit } from "@mui/icons-material";
 
 export default function Users() {
   const { role } = useAuth();
@@ -29,9 +36,18 @@ export default function Users() {
   const [search, setSearch] = useState("");
   const [newAdmin, setNewAdmin] = useState({ name: "", email: "", password: "", mobile: "" });
 
+  const [openReset, setOpenReset] = useState(false);
+  const [openRole, setOpenRole] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState("");
+
   const isElevated = ["admin", "superadmin"].includes(role?.toLowerCase());
   const isSuper = role?.toLowerCase() === "superadmin";
 
+  // 🔄 Load users
   const load = async () => {
     try {
       setLoading(true);
@@ -59,41 +75,7 @@ export default function Users() {
     load();
   };
 
-  const resetPassword = async (id) => {
-    const newPassword = prompt("Enter new password:");
-    if (!newPassword) return;
-    try {
-      await put(`/users/${id}/reset-password`, { newPassword });
-      setSuccess("Password reset successfully ✅");
-      load();
-    } catch {
-      setErr("Password reset failed");
-    }
-  };
-
-  const changeRole = async (id) => {
-    const newRole = prompt("Enter new role (candidate/admin):");
-    if (!newRole) return;
-    try {
-      await put(`/users/${id}/role`, { role: newRole });
-      setSuccess("Role updated ✅");
-      load();
-    } catch {
-      setErr("Role change failed");
-    }
-  };
-
-  const deleteUser = async (id) => {
-    if (!window.confirm("Delete this user permanently?")) return;
-    try {
-      await del(`/users/${id}`);
-      setSuccess("User deleted ❌");
-      load();
-    } catch {
-      setErr("Delete failed");
-    }
-  };
-
+  // 🧾 Create Admin
   const createAdmin = async () => {
     const { name, email, password, mobile } = newAdmin;
     if (!name || !email || !password)
@@ -109,13 +91,64 @@ export default function Users() {
     }
   };
 
+  // 🔐 Reset Password
+  const handleResetPassword = async () => {
+    try {
+      await put(`/users/${selectedUser._id}/reset-password`, { newPassword });
+      setSuccess("Password reset successfully ✅");
+      setOpenReset(false);
+      setNewPassword("");
+      load();
+    } catch {
+      setErr("Password reset failed");
+    }
+  };
+
+  // 🛡️ Change Role
+  const handleChangeRole = async () => {
+    try {
+      await put(`/users/${selectedUser._id}/role`, { role: newRole });
+      setSuccess("Role updated ✅");
+      setOpenRole(false);
+      setNewRole("");
+      load();
+    } catch {
+      setErr("Role change failed");
+    }
+  };
+
+  // 🗑️ Delete User
+  const handleDeleteUser = async () => {
+    try {
+      await del(`/users/${selectedUser._id}`);
+      setSuccess("User deleted successfully ❌");
+      setOpenDelete(false);
+      load();
+    } catch {
+      setErr("Failed to delete user");
+    }
+  };
+
+  if (!isElevated) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography color="error" variant="h6">
+          🚫 Access Denied — Admins Only
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>👥 Users Management</Typography>
+      <Typography variant="h4" gutterBottom>
+        👥 Users Management
+      </Typography>
 
       {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
+      {/* 🔍 Search */}
       <form onSubmit={searchSubmit}>
         <TextField
           value={search}
@@ -127,6 +160,7 @@ export default function Users() {
         <Button variant="contained" type="submit" sx={{ ml: 2 }}>Search</Button>
       </form>
 
+      {/* ➕ Create Admin (Only SuperAdmin) */}
       {isSuper && (
         <Paper sx={{ p: 3, mb: 4 }}>
           <Typography variant="h6" gutterBottom>➕ Create New Admin</Typography>
@@ -144,6 +178,7 @@ export default function Users() {
         </Paper>
       )}
 
+      {/* 📋 Users Table */}
       <Paper sx={{ overflowX: "auto" }}>
         {loading ? (
           <Box sx={{ textAlign: "center", p: 4 }}>
@@ -156,11 +191,11 @@ export default function Users() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Mobile</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell><b>Name</b></TableCell>
+                <TableCell><b>Email</b></TableCell>
+                <TableCell><b>Role</b></TableCell>
+                <TableCell><b>Mobile</b></TableCell>
+                <TableCell><b>Actions</b></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -169,21 +204,61 @@ export default function Users() {
                   <TableCell>{u.name}</TableCell>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
-                    <Chip label={u.role}
-                      color={u.role === "superadmin" ? "secondary" : u.role === "admin" ? "primary" : "default"} />
+                    <Chip
+                      label={u.role}
+                      color={
+                        u.role === "superadmin"
+                          ? "success"
+                          : u.role === "admin"
+                          ? "warning"
+                          : "default"
+                      }
+                      size="small"
+                    />
                   </TableCell>
                   <TableCell>{u.mobile || "-"}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1}>
-                      <Button variant="outlined" size="small" onClick={() => resetPassword(u._id)}>
-                        Reset Password
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<LockReset />}
+                        onClick={() => {
+                          setSelectedUser(u);
+                          setOpenReset(true);
+                        }}
+                      >
+                        Reset
                       </Button>
+
                       {isSuper && (
                         <>
-                          <Button variant="outlined" color="secondary" size="small"
-                            onClick={() => changeRole(u._id)}>Change Role</Button>
-                          <Button variant="outlined" color="error" size="small"
-                            onClick={() => deleteUser(u._id)}>Delete</Button>
+                          <Button
+                            variant="outlined"
+                            color="secondary"
+                            size="small"
+                            startIcon={<Edit />}
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setNewRole(u.role);
+                              setOpenRole(true);
+                            }}
+                          >
+                            Role
+                          </Button>
+
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            startIcon={<Delete />}
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setOpenDelete(true);
+                            }}
+                          >
+                            Delete
+                          </Button>
                         </>
                       )}
                     </Stack>
@@ -194,6 +269,67 @@ export default function Users() {
           </Table>
         )}
       </Paper>
+
+      {/* 🔐 Reset Password Dialog */}
+      <Dialog open={openReset} onClose={() => setOpenReset(false)}>
+        <DialogTitle>🔐 Reset Password</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 1 }}>
+            Reset password for: <b>{selectedUser?.email}</b>
+          </Typography>
+          <TextField
+            label="New Password"
+            fullWidth
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenReset(false)}>Cancel</Button>
+          <Button onClick={handleResetPassword} variant="contained">Reset</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 🛡️ Change Role Dialog */}
+      <Dialog open={openRole} onClose={() => setOpenRole(false)}>
+        <DialogTitle>🛡️ Change Role</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 1 }}>
+            Change role for: <b>{selectedUser?.email}</b>
+          </Typography>
+          <Select
+            value={newRole}
+            onChange={(e) => setNewRole(e.target.value)}
+            fullWidth
+          >
+            <MenuItem value="candidate">Candidate</MenuItem>
+            <MenuItem value="admin">Admin</MenuItem>
+            <MenuItem value="superadmin">SuperAdmin</MenuItem>
+          </Select>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenRole(false)}>Cancel</Button>
+          <Button onClick={handleChangeRole} variant="contained">Update</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 🗑️ Delete User Dialog */}
+      <Dialog open={openDelete} onClose={() => setOpenDelete(false)}>
+        <DialogTitle>🗑️ Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to permanently delete user:{" "}
+            <b>{selectedUser?.email}</b>?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDelete(false)}>Cancel</Button>
+          <Button onClick={handleDeleteUser} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

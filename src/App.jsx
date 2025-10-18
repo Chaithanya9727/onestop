@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -24,11 +23,15 @@ import VerifyOtp from "./pages/verifyOtp.jsx";
 import OauthSuccess from "./pages/OauthSuccess.jsx";
 import AdminMessages from "./pages/AdminMessages.jsx";
 
-// 🧠 Mentor System (updated imports)
+// 🧠 Mentor System
 import MentorDashboard from "./pages/MentorDashboard.jsx";
 import ApplyForMentor from "./pages/ApplyForMentor.jsx";
-import BecomeMentor from "./pages/BecomeMentor.jsx"; // ✅ added new redirect file
+import BecomeMentor from "./pages/BecomeMentor.jsx";
 import AdminMentorApprovals from "./pages/AdminMentorApprovals.jsx";
+
+// ✉️ Internal Mail System
+import AdminSendMail from "./pages/AdminSendMail.jsx";
+import AdminMailBox from "./pages/AdminMailBox.jsx";
 
 // 🧩 Components
 import Navbar from "./components/Navbar.jsx";
@@ -47,6 +50,9 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import { useThemeMode } from "./hooks/useThemeMode.js";
 import lightTheme from "./theme.js";
 import darkTheme from "./themeDark.js";
+
+// 🧭 Admin Layout (New)
+import AdminLayout from "./layouts/AdminLayout.jsx";
 
 export default function App() {
   const location = useLocation();
@@ -103,6 +109,7 @@ export default function App() {
                       </GuestRoute>
                     }
                   />
+
                   <Route path="/verify-otp" element={<VerifyOtp />} />
                   <Route path="/oauth-success" element={<OauthSuccess />} />
                   <Route path="/messages" element={<Messages />} />
@@ -201,52 +208,31 @@ export default function App() {
                     path="/become-mentor"
                     element={
                       <ProtectedRoute roles={["candidate"]}>
-                        <BecomeMentor /> {/* ✅ now redirects to /apply-for-mentor */}
+                        <BecomeMentor />
                       </ProtectedRoute>
                     }
                   />
 
-                  {/* 👑 Admin Routes */}
+                  {/* 👑 Admin Routes (Now Nested under AdminLayout) */}
                   <Route
                     path="/admin"
                     element={
                       <ProtectedRoute roles={["admin", "superadmin"]}>
-                        <AdminPanel />
+                        <AdminLayout />
                       </ProtectedRoute>
                     }
-                  />
-                  <Route
-                    path="/admin/users"
-                    element={
-                      <ProtectedRoute roles={["admin", "superadmin"]}>
-                        <Users />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/messages"
-                    element={
-                      <ProtectedRoute roles={["admin", "superadmin"]}>
-                        <AdminMessages />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/logs"
-                    element={
-                      <ProtectedRoute roles={["admin", "superadmin"]}>
-                        <AdminLogs />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/mentor-approvals"
-                    element={
-                      <ProtectedRoute roles={["admin", "superadmin"]}>
-                        <AdminMentorApprovals />
-                      </ProtectedRoute>
-                    }
-                  />
+                  >
+                    <Route index element={<AdminPanel />} />
+                    <Route path="users" element={<Users />} />
+                    <Route path="messages" element={<AdminMessages />} />
+                    <Route path="logs" element={<AdminLogs />} />
+                    <Route path="mailbox" element={<AdminMailBox />} />
+                    <Route path="send-mail" element={<AdminSendMail />} />
+                    <Route
+                      path="mentor-approvals"
+                      element={<AdminMentorApprovals />}
+                    />
+                  </Route>
 
                   {/* 🚫 404 Fallback */}
                   <Route

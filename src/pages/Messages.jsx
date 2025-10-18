@@ -13,13 +13,13 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Divider,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/DisabledByDefault";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
-// import "../styles.css";
 
 export default function Messages() {
   const { role } = useAuth();
@@ -35,15 +35,16 @@ export default function Messages() {
 
   const isAdmin = ["admin", "superadmin"].includes(role?.toLowerCase());
 
-  // ✅ Load messages from backend
+  // ✅ Load all contact messages
   const load = async () => {
     try {
       setLoading(true);
-      const data = await get("/messages");
-      setMessages(data.messages || []);
+      const data = await get("/contact");
+      setMessages(data || []);
       setSelectedIds(new Set());
-    } catch {
-      setErr("Failed to load messages");
+    } catch (error) {
+      console.error("Load messages error:", error);
+      setErr("Failed to load contact messages");
     } finally {
       setLoading(false);
     }
@@ -56,25 +57,27 @@ export default function Messages() {
   // ✅ Send reply
   const sendReply = async (id) => {
     try {
-      await post(`/messages/${id}/reply`, { reply: replyText });
-      setSuccess("Reply sent ✅");
+      await post(`/contact/${id}/reply`, { reply: replyText });
+      setSuccess("Reply sent successfully ✅");
       setReplyId(null);
       setReplyText("");
       load();
-    } catch {
-      setErr("Reply failed");
+    } catch (error) {
+      console.error("Reply error:", error);
+      setErr("Failed to send reply");
     }
   };
 
   // ✅ Delete single message
   const remove = async (id) => {
-    if (!window.confirm("Delete this message?")) return;
+    if (!window.confirm("Are you sure you want to delete this message?")) return;
     try {
-      await del(`/messages/${id}`);
-      setSuccess("Message deleted ❌");
+      await del(`/contact/${id}`);
+      setSuccess("Message deleted successfully ❌");
       load();
-    } catch {
-      setErr("Delete failed");
+    } catch (error) {
+      console.error("Delete error:", error);
+      setErr("Failed to delete message");
     }
   };
 
@@ -82,42 +85,41 @@ export default function Messages() {
   const deleteReply = async (msgId, replyId) => {
     if (!window.confirm("Delete this reply?")) return;
     try {
-      await del(`/messages/${msgId}/reply/${replyId}`);
+      await del(`/contact/${msgId}/reply/${replyId}`);
       setSuccess("Reply deleted ❌");
       load();
-    } catch {
-      setErr("Delete reply failed");
+    } catch (error) {
+      console.error("Delete reply error:", error);
+      setErr("Failed to delete reply");
     }
   };
 
-  // ✅ Bulk delete selected messages
+  // ✅ Bulk delete
   const bulkDelete = async () => {
     if (selectedIds.size === 0) return;
     if (!window.confirm(`Delete ${selectedIds.size} selected messages?`)) return;
     try {
-      await Promise.all([...selectedIds].map((id) => del(`/messages/${id}`)));
+      await Promise.all([...selectedIds].map((id) => del(`/contact/${id}`)));
       setSuccess(`Deleted ${selectedIds.size} messages ❌`);
       setSelectedIds(new Set());
       load();
-    } catch {
+    } catch (error) {
       setErr("Bulk delete failed");
     }
   };
 
-  // ✅ Selection controls
+  // ✅ Selection
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
-
-  const selectAllOnPage = () =>
-    setSelectedIds(new Set(messages.map((m) => m._id)));
+  const selectAllOnPage = () => setSelectedIds(new Set(messages.map((m) => m._id)));
   const clearSelection = () => setSelectedIds(new Set());
 
+  // ✅ Non-admin access
   if (!isAdmin) {
     return (
       <Box sx={{ textAlign: "center", p: 4 }}>
@@ -126,6 +128,7 @@ export default function Messages() {
     );
   }
 
+  // ✅ Loading state
   if (loading) {
     return (
       <Box sx={{ textAlign: "center", p: 4 }}>
@@ -137,15 +140,15 @@ export default function Messages() {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        📩 Messages
+      <Typography variant="h4" gutterBottom fontWeight="bold">
+        📥 Contact Messages
       </Typography>
 
       {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
       {/* ✅ Bulk Actions */}
-      {isAdmin && messages.length > 0 && (
+      {messages.length > 0 && (
         <Paper sx={{ p: 2, mb: 3 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <Tooltip title="Select all">
@@ -188,49 +191,59 @@ export default function Messages() {
         </Paper>
       )}
 
+      {/* ✅ Message List */}
       {messages.length === 0 ? (
-        <Typography>No messages found.</Typography>
+        <Typography>No contact messages found.</Typography>
       ) : (
         messages.map((m) => {
           const isSelected = selectedIds.has(m._id);
           return (
-            <Paper key={m._id} sx={{ p: 2, mb: 2 }}>
-              <Stack direction="row" justifyContent="space-between">
+            <Paper key={m._id} sx={{ p: 3, mb: 2, borderRadius: 3 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">
-                    {m.from?.name || "Unknown"} ({m.from?.email || "No email"})
+                  <Typography variant="h6" fontWeight="bold">
+                    {m.name} ({m.email})
                   </Typography>
-                  <Typography sx={{ mb: 1 }}>{m.body || m.message}</Typography>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Subject: {m.subject || "No subject"}
+                  </Typography>
+                  <Typography sx={{ mb: 1 }}>{m.message}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Sent on {new Date(m.createdAt).toLocaleString()}
+                  </Typography>
 
-                  {/* ✅ Replies section */}
+                  {/* ✅ Replies */}
                   {m.replies && m.replies.length > 0 && (
                     <Box
                       sx={{
-                        mt: 1,
+                        mt: 2,
                         p: 1.5,
                         bgcolor: "grey.100",
-                        borderRadius: 1,
+                        borderRadius: 2,
                       }}
                     >
-                      <Typography variant="subtitle2">Replies:</Typography>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        Replies:
+                      </Typography>
                       {m.replies.map((r) => (
-                        <Paper key={r._id} sx={{ p: 1, my: 1, bgcolor: "white" }}>
+                        <Paper
+                          key={r._id}
+                          sx={{ p: 1, my: 1, bgcolor: "white", borderRadius: 1 }}
+                        >
                           <Typography variant="body2">{r.text}</Typography>
                           <Typography variant="caption" color="text.secondary">
                             {new Date(r.repliedAt).toLocaleString()} by{" "}
                             {r.repliedBy?.name || "Admin"}
                           </Typography>
 
-                          {isAdmin && (
-                            <Button
-                              size="small"
-                              color="error"
-                              sx={{ ml: 2 }}
-                              onClick={() => deleteReply(m._id, r._id)}
-                            >
-                              Delete Reply
-                            </Button>
-                          )}
+                          <Button
+                            size="small"
+                            color="error"
+                            sx={{ ml: 2 }}
+                            onClick={() => deleteReply(m._id, r._id)}
+                          >
+                            Delete Reply
+                          </Button>
                         </Paper>
                       ))}
                     </Box>
@@ -269,7 +282,7 @@ export default function Messages() {
                     <Button
                       variant="outlined"
                       size="small"
-                      sx={{ mt: 1 }}
+                      sx={{ mt: 2 }}
                       onClick={() => setReplyId(m._id)}
                     >
                       Reply
@@ -298,6 +311,7 @@ export default function Messages() {
                   </Button>
                 </Stack>
               </Stack>
+              <Divider sx={{ mt: 2 }} />
             </Paper>
           );
         })
