@@ -8,19 +8,28 @@ export default function useApi() {
 
   const baseHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
+  // ⭐ FIX: Properly return error with full backend response
+  const createApiError = (status, data) => {
+    return {
+      status,
+      message: data?.message || "Request failed",
+      data,
+    };
+  };
+
   const handleResponse = async (res) => {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      // 🔒 Token expired → force logout
       if (res.status === 401) {
-        console.warn("🔒 Token expired or invalid — logging out");
+        console.warn("🔒 Token expired — logging out");
         logout?.();
       }
-      throw new Error(data.message || "Request failed");
+
+      // ⭐ Throw structured error (NOT new Error())
+      throw createApiError(res.status, data);
     }
 
-    // 🔁 If user data changed (mentor approval, etc.), auto-refresh context
     if (data?.user && refreshUser) refreshUser();
 
     if (import.meta.env.DEV) {
@@ -34,8 +43,8 @@ export default function useApi() {
     try {
       return await fn(...args);
     } catch (error) {
-      console.error("❌ API Error:", error.message);
-      throw error;
+      console.error("❌ API Error:", error);
+      throw error; // ⭐ keep full error structure
     }
   };
 

@@ -41,7 +41,7 @@ export default function Login() {
     const token = params.get("token");
     if (token) {
       setToken(token);
-      navigate("/dashboard"); // redirect after OAuth login
+      navigate("/dashboard");
     }
   }, [location.search]);
 
@@ -69,8 +69,11 @@ export default function Login() {
 
       // 🔀 Redirect based on role
       setTimeout(() => {
-        if (data.role === "admin" || data.role === "superadmin") navigate("/admin");
-        else if (data.role === "mentor") navigate("/mentor/dashboard");
+        const role = data.role?.toLowerCase();
+
+        if (role === "admin" || role === "superadmin") navigate("/admin");
+        else if (role === "mentor") navigate("/mentor/dashboard");
+        else if (role === "recruiter") navigate("/rpanel/overview"); // ✅ Recruiter fix
         else navigate("/dashboard");
       }, 1000);
     } catch (error) {
@@ -154,7 +157,6 @@ export default function Login() {
               }}
             />
 
-            {/* 🎓 Role Selection Dropdown */}
             <TextField
               select
               fullWidth

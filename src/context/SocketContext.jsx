@@ -1,12 +1,14 @@
+// src/context/SocketContext.jsx
 import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { io } from "socket.io-client";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext(null);
 
@@ -18,26 +20,24 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
 
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [connectionStatus, setConnectionStatus] = useState("disconnected"); // disconnected | connecting | connected | error
 
-  // Backend URL
+  // Backend Socket URL
   const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
   /* =====================================================
-     🔌 Initialize socket only when token is available
+     🔌 Socket Initialization
   ====================================================== */
-  useEffect(() => {
+  const socket = useMemo(() => {
     if (!token) {
-      console.warn("🔑 No token — socket not initialized yet");
-      setIsConnected(false);
-      setConnectionStatus("disconnected");
-      return;
+      console.warn("🔑 No token, skipping socket initialization");
+      return null;
     }
 
     console.log("🔄 Creating socket connection...");
     setConnectionStatus("connecting");
 
-    const socket = io(SOCKET_URL, {
+    const s = io(SOCKET_URL, {
       auth: { token },
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -49,48 +49,86 @@ export function SocketProvider({ children }) {
       withCredentials: true,
     });
 
-    socketRef.current = socket;
+    return s;
+  }, [token, SOCKET_URL]);
 
-    /* =====================================================
-       ⚙️ Event Handlers
-    ====================================================== */
-    socket.on("connect", () => {
+  /* =====================================================
+     ⚙️ Socket Event Handlers
+  ====================================================== */
+  useEffect(() => {
+    if (!socket) {
+      console.log("❌ No socket instance available");
+      setConnectionStatus("disconnected");
+      return;
+    }
+
+    const handleConnect = () => {
       console.log("✅ Connected to socket server:", socket.id);
       setIsConnected(true);
       setConnectionStatus("connected");
+      socketRef.current = socket;
 
+      // Register user and join their notification room
+      if (user?._id) {
+        socket.emit("registerUser", user._id);
+        socket.emit("presence:online", { userId: user._id, role: user.role });
+        socket.emit("notification:join", user._id); // ✅ join personal notification room
+      }
+    };
+
+    const handleDisconnect = (reason) => {
+      console.warn("❌ Socket disconnected:", reason);
+      setIsConnected(false);
+      setConnectionStatus("disconnected");
+      if (reason === "io server disconnect") {
+        socket.connect();
+      }
+    };
+
+    const handleError = (error) => {
+      console.error("🚨 Socket error:", error.message);
+      setIsConnected(false);
+      setConnectionStatus("error");
+    };
+
+    const handleReconnect = (attempt) => {
+      console.log(`🔄 Socket reconnected (attempt ${attempt})`);
+      setIsConnected(true);
+      setConnectionStatus("connected");
       if (user?._id) {
         socket.emit("presence:online", { userId: user._id, role: user.role });
         socket.emit("notification:join", user._id);
       }
-    });
+    };
 
-    socket.on("disconnect", (reason) => {
-      console.warn("❌ Socket disconnected:", reason);
-      setIsConnected(false);
-      setConnectionStatus("disconnected");
+    const handleReconnectAttempt = (a) => {
+      console.log("🔁 Attempting to reconnect:", a);
+      setConnectionStatus("connecting");
+    };
 
-      if (reason === "io server disconnect") socket.connect();
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("🚨 Socket error:", err.message);
+    const handleReconnectFailed = () => {
+      console.error("💥 Reconnection failed");
       setConnectionStatus("error");
-    });
-
-    socket.on("reconnect", (attempt) => {
-      console.log(`🔄 Socket reconnected (attempt ${attempt})`);
-      setIsConnected(true);
-      setConnectionStatus("connected");
-    });
+    };
 
     /* =====================================================
-       🔔 Real-time Notifications
+       🔔 Notifications
     ====================================================== */
-    socket.on("notification:new", (notif) => {
-      console.log("🔔 New Notification received:", notif);
-      window.dispatchEvent(new CustomEvent("socket:notification", { detail: notif }));
-    });
+    const handleNotification = (payload) => {
+      console.log("🔔 Notification received:", payload);
+      window.dispatchEvent(new CustomEvent("socket:notification", { detail: payload }));
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleError);
+    socket.on("reconnect", handleReconnect);
+    socket.on("reconnect_attempt", handleReconnectAttempt);
+    socket.on("reconnect_failed", handleReconnectFailed);
+
+    // Support both event names just in case
+    socket.on("notification", handleNotification);
+    socket.on("notification:new", handleNotification);
 
     /* =====================================================
        💬 Messaging
@@ -105,29 +143,41 @@ export function SocketProvider({ children }) {
     });
 
     socket.on("typing", (data) => {
-      console.log("⌨️ Typing event:", data);
+      console.log("⌨️ Typing:", data);
     });
 
+    if (!socket.connected) socket.connect();
+
     return () => {
-      console.log("🧹 Cleaning socket listeners...");
-      socket.removeAllListeners();
-      socket.disconnect();
+      console.log("🧹 Cleaning socket listeners");
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleError);
+      socket.off("reconnect", handleReconnect);
+      socket.off("reconnect_attempt", handleReconnectAttempt);
+      socket.off("reconnect_failed", handleReconnectFailed);
+      socket.off("notification");
+      socket.off("notification:new");
+      socket.off("message:new");
+      socket.off("message:update");
+      socket.off("typing");
+
+      if (socket.connected) socket.disconnect();
+
       setIsConnected(false);
       setConnectionStatus("disconnected");
     };
-  }, [token, user, SOCKET_URL]);
-
-  const socket = socketRef.current;
+  }, [socket, user]);
 
   /* =====================================================
-     🔍 Debug logging
+     🧭 Connection Debug Logging
   ====================================================== */
   useEffect(() => {
-    console.log(`📡 Socket status: ${connectionStatus} | Connected: ${isConnected}`);
+    console.log(`🔍 Socket status: ${connectionStatus} | Connected: ${isConnected}`);
   }, [connectionStatus, isConnected]);
 
   const contextValue = {
-    socket,
+    socket: socketRef.current,
     isConnected,
     connectionStatus,
   };
@@ -144,12 +194,14 @@ export const useSocket = () => {
 
   const { socket, isConnected, connectionStatus } = context;
 
+  // ✅ Send Message
   const sendMessage = (payload, callback) => {
     if (!socket || !isConnected) {
       console.error("🚨 Cannot send message: Socket not connected");
       callback?.({ ok: false, error: "Socket not connected" });
       return;
     }
+
     console.log("📤 Sending message:", payload);
     socket.emit("message:send", payload, (response) => {
       console.log("📨 Message response:", response);
@@ -157,20 +209,23 @@ export const useSocket = () => {
     });
   };
 
-  const sendNotification = (payload) => {
-    if (!socket || !isConnected) return console.error("Socket not connected");
-    console.log("📢 Sending manual notification:", payload);
-    socket.emit("notification:send", payload);
-  };
-
+  // ✅ Mark Message
   const markMessage = (messageId, status) => {
     if (!socket || !isConnected) return console.error("Socket not connected");
     socket.emit("message:mark", { messageId, status });
   };
 
+  // ✅ Typing Indicator
   const sendTyping = (to, conversationId, typing = true) => {
     if (!socket || !isConnected) return console.error("Socket not connected");
     socket.emit("typing", { to, conversationId, typing });
+  };
+
+  // ✅ Emit Notification (manual)
+  const sendNotification = (payload) => {
+    if (!socket || !isConnected) return console.error("Socket not connected");
+    console.log("📢 Sending manual notification:", payload);
+    socket.emit("notification:send", payload);
   };
 
   return {
@@ -178,14 +233,14 @@ export const useSocket = () => {
     isConnected,
     connectionStatus,
     sendMessage,
-    sendNotification,
     markMessage,
     sendTyping,
+    sendNotification,
   };
 };
 
 /* =====================================================
-   🔖 Export Socket States
+   🔖 Socket Status Constants
 ===================================================== */
 export const SOCKET_STATUS = {
   DISCONNECTED: "disconnected",

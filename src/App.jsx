@@ -1,58 +1,85 @@
-import React from "react";
+// ✅ src/App.jsx
+import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 
-// 🌈 Pages
-import Home from "./pages/Home.jsx";
-import Register from "./pages/Register.jsx";
-import Login from "./pages/Login.jsx";
-import Resources from "./pages/Resources.jsx";
-import Profile from "./pages/Profile.jsx";
-import AdminPanel from "./pages/AdminPanel.jsx";
-import Users from "./pages/Users.jsx";
-import Messages from "./pages/Messages.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
-import Notices from "./pages/Notices.jsx";
-import AdminLogs from "./pages/AdminLogs.jsx";
-import Contact from "./pages/Contact.jsx";
-import Events from "./pages/Events.jsx";
-import Chat from "./pages/Chat.jsx";
-import VerifyOtp from "./pages/verifyOtp.jsx";
-import OauthSuccess from "./pages/OauthSuccess.jsx";
-import AdminMessages from "./pages/AdminMessages.jsx";
+// 🧩 Context Providers
+import { SocketProvider } from "./socket.jsx";
+import { ToastProvider } from "./components/ToastProvider.jsx";
 
-// 🧠 Mentor System
-import MentorDashboard from "./pages/MentorDashboard.jsx";
-import ApplyForMentor from "./pages/ApplyForMentor.jsx";
-import BecomeMentor from "./pages/BecomeMentor.jsx";
-import AdminMentorApprovals from "./pages/AdminMentorApprovals.jsx";
+// 🎨 Theme
+import { useThemeMode } from "./hooks/useThemeMode.js";
+import lightTheme from "./theme.js";
+import darkTheme from "./themeDark.js";
 
-// ✉️ Internal Mail System
-import AdminSendMail from "./pages/AdminSendMail.jsx";
-import AdminMailBox from "./pages/AdminMailBox.jsx";
-
-// 🧩 Components
+// 🌐 Layouts
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import GuestRoute from "./components/GuestRoute.jsx";
 import PageTransition from "./components/PageTransition.jsx";
 import BackgroundGlow from "./components/BackgroundGlow.jsx";
-import { ToastProvider } from "./components/ToastProvider.jsx";
 
-// ⚙️ WebSocket Provider
-import { SocketProvider } from "./socket.jsx";
+// 🧩 Recruiter Layout
+import RecruiterLayout from "./layouts/RecruiterLayout.jsx";
+import RecruiterOverview from "./pages/RecruiterOverview.jsx";
+import RecruiterSettings from "./pages/RecruiterSettings.jsx";
+import RecruiterAnalytics from "./pages/RecruiterAnalytics.jsx";
+import RecruiterJobs from "./pages/RecruiterJobs.jsx";
+import RecruiterApplications from "./pages/RecruiterApplications.jsx";
+import PostJob from "./pages/PostJob.jsx";
 
-// 🎨 Theme + Context
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import { useThemeMode } from "./hooks/useThemeMode.js";
-import lightTheme from "./theme.js";
-import darkTheme from "./themeDark.js";
-
-// 🧭 Admin Layout (New)
+// 👑 Admin Layout
 import AdminLayout from "./layouts/AdminLayout.jsx";
+import AdminPanel from "./pages/AdminPanel.jsx";
+import Users from "./pages/Users.jsx";
+import AdminJobs from "./pages/AdminJobs.jsx";
+import AdminLogs from "./pages/AdminLogs.jsx";
+import AdminMessages from "./pages/AdminMessages.jsx";
+import AdminSendMail from "./pages/AdminSendMail.jsx";
+import AdminMailBox from "./pages/AdminMailBox.jsx";
+import AdminMentorApprovals from "./pages/AdminMentorApprovals.jsx";
+import AdminRecruiterApprovals from "./pages/AdminRecruiterApprovals.jsx";
+import AdminMetrics from "./pages/AdminMetrics.jsx";
+import AdminEventMetrics from "./pages/AdminEventMetrics.jsx";
+
+// 🌈 Event System
+import EventsList from "./pages/events/EventsList.jsx";
+import EventDetails from "./pages/events/EventDetails.jsx";
+import SubmitEntry from "./pages/events/SubmitEntry.jsx";
+import Leaderboard from "./pages/events/Leaderboard.jsx";
+import CreateEvent from "./pages/events/CreateEvent.jsx";
+import EventRegistrations from "./pages/events/EventRegistrations.jsx";
+import JudgePanel from "./components/events/JudgePanel.jsx";
+import MyRegistrations from "./components/events/MyRegistrations.jsx";
+import AdminEventManager from "./components/events/AdminEventManager.jsx";
+
+// 🌟 Mentor System
+import MentorDashboard from "./pages/MentorDashboard.jsx";
+import ApplyForMentor from "./pages/ApplyForMentor.jsx";
+import BecomeMentor from "./pages/BecomeMentor.jsx";
+
+// 💼 Job Portal + General Pages
+import Home from "./pages/Home.jsx";
+import Register from "./pages/Register.jsx";
+import Login from "./pages/Login.jsx";
+import RegisterRecruiter from "./pages/RegisterRecruiter.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+import VerifyOtp from "./pages/verifyOtp.jsx";
+import OauthSuccess from "./pages/OauthSuccess.jsx";
+import Contact from "./pages/Contact.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import Resources from "./pages/Resources.jsx";
+import Notices from "./pages/Notices.jsx";
+import Profile from "./pages/Profile.jsx";
+import CandidateProfile from "./pages/CandidateProfile.jsx";
+import JobList from "./pages/JobList.jsx";
+import JobDetails from "./pages/JobDetails.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import Messages from "./pages/Messages.jsx";
+import Chat from "./pages/Chat.jsx";
 
 export default function App() {
   const location = useLocation();
@@ -63,17 +90,20 @@ export default function App() {
     "/",
     "/login",
     "/register",
+    "/register-recruiter",
     "/verify-otp",
     "/oauth-success",
   ].includes(location.pathname);
 
+  const isRecruiterPanel = location.pathname.startsWith("/rpanel");
+
   return (
     <ThemeProvider theme={activeTheme}>
       <CssBaseline />
-      <ToastProvider>
-        <SocketProvider>
-          <Navbar />
-          {showBackgroundGlow && <BackgroundGlow />}
+      <SocketProvider>
+        <ToastProvider>
+          {!isRecruiterPanel && <Navbar />}
+          {showBackgroundGlow && !isRecruiterPanel && <BackgroundGlow />}
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -81,139 +111,74 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4, ease: "easeInOut" }}
+              transition={{ duration: 0.4 }}
               style={{
-                position: "relative",
-                zIndex: 2,
-                minHeight: "calc(100vh - 64px)",
-                paddingBottom: "40px",
+                minHeight: isRecruiterPanel ? "100vh" : "calc(100vh - 64px)",
+                paddingBottom: isRecruiterPanel ? 0 : "40px",
               }}
             >
               <PageTransition>
-                <Routes location={location} key={location.pathname}>
-                  {/* 🌍 Public Routes */}
-                  <Route path="/" element={<Home />} />
-                  <Route
-                    path="/register"
-                    element={
-                      <GuestRoute>
-                        <Register />
-                      </GuestRoute>
-                    }
-                  />
-                  <Route
-                    path="/login"
-                    element={
-                      <GuestRoute>
-                        <Login />
-                      </GuestRoute>
-                    }
-                  />
+                <Routes>
 
-                  <Route path="/verify-otp" element={<VerifyOtp />} />
-                  <Route path="/oauth-success" element={<OauthSuccess />} />
-                  <Route path="/messages" element={<Messages />} />
+                  {/* 🌍 PUBLIC ROUTES */}
+                  <Route path="/" element={<Home />} />
                   <Route path="/contact" element={<Contact />} />
 
-                  {/* 🔐 Password & Recovery */}
-                  <Route
-                    path="/forgot-password"
-                    element={
-                      <GuestRoute>
-                        <ForgotPassword />
-                      </GuestRoute>
-                    }
-                  />
-                  <Route
-                    path="/reset-password/:token"
-                    element={
-                      <GuestRoute>
-                        <ResetPassword />
-                      </GuestRoute>
-                    }
-                  />
+                  <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+                  <Route path="/register-recruiter" element={<GuestRoute><RegisterRecruiter /></GuestRoute>} />
+                  <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+                  <Route path="/verify-otp" element={<VerifyOtp />} />
+                  <Route path="/oauth-success" element={<OauthSuccess />} />
 
-                  {/* 🔒 Authenticated Routes */}
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute
-                        roles={["candidate", "mentor", "admin", "superadmin"]}
-                      >
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/resources"
-                    element={
-                      <ProtectedRoute
-                        roles={["candidate", "mentor", "admin", "superadmin"]}
-                      >
-                        <Resources />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/notices"
-                    element={
-                      <ProtectedRoute>
-                        <Notices />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/events"
-                    element={
-                      <ProtectedRoute>
-                        <Events />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/chat"
-                    element={
-                      <ProtectedRoute>
-                        <Chat />
-                      </ProtectedRoute>
-                    }
-                  />
+                  {/* 🔐 PASSWORD RESET */}
+                  <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+                  <Route path="/reset-password/:token" element={<GuestRoute><ResetPassword /></GuestRoute>} />
 
-                  {/* 🧑‍🏫 Mentor Routes */}
-                  <Route
-                    path="/mentor-dashboard"
-                    element={
-                      <ProtectedRoute roles={["mentor"]}>
-                        <MentorDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/apply-for-mentor"
-                    element={
-                      <ProtectedRoute roles={["candidate"]}>
-                        <ApplyForMentor />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/become-mentor"
-                    element={
-                      <ProtectedRoute roles={["candidate"]}>
-                        <BecomeMentor />
-                      </ProtectedRoute>
-                    }
-                  />
+                  {/* 🔒 AUTH ROUTES */}
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/notices" element={<ProtectedRoute><Notices /></ProtectedRoute>} />
+                  <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
-                  {/* 👑 Admin Routes (Now Nested under AdminLayout) */}
+                  {/* 🌈 EVENT ROUTES */}
+                  <Route path="/events" element={<ProtectedRoute><EventsList /></ProtectedRoute>} />
+                  <Route path="/events/:id" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
+                  <Route path="/events/submit/:id" element={<ProtectedRoute><SubmitEntry /></ProtectedRoute>} />
+                  <Route path="/events/leaderboard/:id" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+                  <Route path="/events/my/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
+
+                  {/* ADMIN EVENT ROUTES */}
+                  <Route path="/admin/events" element={<ProtectedRoute roles={["admin","superadmin"]}><AdminEventManager /></ProtectedRoute>} />
+                  <Route path="/admin/events/registrations/:id" element={<ProtectedRoute roles={["admin","superadmin"]}><EventRegistrations /></ProtectedRoute>} />
+                  <Route path="/admin/events/judge/:id" element={<ProtectedRoute roles={["admin","superadmin"]}><JudgePanel /></ProtectedRoute>} />
+                  <Route path="/admin/create-event" element={<ProtectedRoute roles={["admin","superadmin"]}><CreateEvent /></ProtectedRoute>} />
+
+                  {/* 🌟 MENTOR ROUTES */}
+                  <Route path="/mentor-dashboard" element={<ProtectedRoute roles={["mentor"]}><MentorDashboard /></ProtectedRoute>} />
+                  <Route path="/apply-for-mentor" element={<ProtectedRoute roles={["candidate"]}><ApplyForMentor /></ProtectedRoute>} />
+                  <Route path="/become-mentor" element={<ProtectedRoute><BecomeMentor /></ProtectedRoute>} />
+
+                  {/* 🧩 RECRUITER PANEL */}
+                  <Route
+                    path="/rpanel"
+                    element={
+                      <ProtectedRoute roles={["recruiter"]}>
+                        <RecruiterLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="overview" element={<RecruiterOverview />} />
+                    <Route path="post-job" element={<PostJob />} />
+                    <Route path="jobs" element={<RecruiterJobs />} />
+                    <Route path="jobs/:id/applications" element={<RecruiterApplications />} />
+                    <Route path="applications" element={<RecruiterApplications />} />
+                    <Route path="analytics" element={<RecruiterAnalytics />} />
+                    <Route path="settings" element={<RecruiterSettings />} />
+                  </Route>
+
+                  {/* 👑 ADMIN PANEL */}
                   <Route
                     path="/admin"
                     element={
@@ -224,41 +189,31 @@ export default function App() {
                   >
                     <Route index element={<AdminPanel />} />
                     <Route path="users" element={<Users />} />
-                    <Route path="messages" element={<AdminMessages />} />
+                    <Route path="jobs" element={<AdminJobs />} />
                     <Route path="logs" element={<AdminLogs />} />
-                    <Route path="mailbox" element={<AdminMailBox />} />
+                    <Route path="messages" element={<AdminMessages />} />
                     <Route path="send-mail" element={<AdminSendMail />} />
-                    <Route
-                      path="mentor-approvals"
-                      element={<AdminMentorApprovals />}
-                    />
+                    <Route path="mailbox" element={<AdminMailBox />} />
+                    <Route path="mentor-approvals" element={<AdminMentorApprovals />} />
+                    <Route path="recruiter-approvals" element={<AdminRecruiterApprovals />} />
+                    <Route path="metrics" element={<AdminMetrics />} />
+                    <Route path="event-metrics" element={<AdminEventMetrics />} />
                   </Route>
 
-                  {/* 🚫 404 Fallback */}
-                  <Route
-                    path="*"
-                    element={
-                      <div
-                        style={{
-                          textAlign: "center",
-                          marginTop: "80px",
-                          fontSize: "1.4rem",
-                          color: "#555",
-                        }}
-                      >
-                        404 — Page Not Found 🚧
-                      </div>
-                    }
-                  />
+                  {/* 🌐 JOB PORTAL */}
+                  <Route path="/jobs" element={<JobList />} />
+                  <Route path="/jobs/:id" element={<ProtectedRoute roles={["candidate"]}><JobDetails /></ProtectedRoute>} />
+
+                  {/* 🚫 404 */}
+                  <Route path="*" element={<div style={{ textAlign: "center", marginTop: 80 }}>404 — Page Not Found</div>} />
                 </Routes>
               </PageTransition>
 
-              {/* 🌍 Footer */}
-              <Footer />
+              {!isRecruiterPanel && <Footer />}
             </motion.div>
           </AnimatePresence>
-        </SocketProvider>
-      </ToastProvider>
+        </ToastProvider>
+      </SocketProvider>
     </ThemeProvider>
   );
 }

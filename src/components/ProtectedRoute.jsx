@@ -1,5 +1,4 @@
-// src/components/ProtectedRoute.jsx
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { CircularProgress, Box, Typography } from "@mui/material";
 
@@ -9,6 +8,7 @@ export default function ProtectedRoute({
   redirectPath = "/dashboard",
 }) {
   const { user, role, loading } = useAuth();
+  const location = useLocation();
 
   // ⏳ Wait for auth to finish
   if (loading) {
@@ -31,16 +31,17 @@ export default function ProtectedRoute({
   }
 
   // 🚫 Not logged in
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
-  // 🧠 Normalize role
   const normalizedRole = (role || "").toLowerCase();
 
-  // ✅ Superadmin override (can access everything)
-  if (normalizedRole === "superadmin") {
-    return children;
+  // 👑 Superadmin override
+  if (normalizedRole === "superadmin") return children;
+
+  // 🚀 Recruiter redirection from /dashboard → /rpanel/overview
+  if (normalizedRole === "recruiter" && location.pathname === "/dashboard") {
+    console.info("Redirecting recruiter to /rpanel/overview");
+    return <Navigate to="/rpanel/overview" replace />;
   }
 
   // 🔒 Role-based access control

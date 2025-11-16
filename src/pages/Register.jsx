@@ -1,74 +1,309 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import BackgroundGlow from "../components/BackgroundGlow.jsx";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  Card,
-  CardContent,
-  TextField,
+  Box,
   Button,
+  TextField,
   Typography,
   Checkbox,
   FormControlLabel,
   CircularProgress,
-  Divider,
-  Stack,
-  Box,
   IconButton,
   InputAdornment,
+  Divider,
+  LinearProgress,
+  Stack,
 } from "@mui/material";
-import { Visibility, VisibilityOff, GitHub, Google, Email } from "@mui/icons-material";
+import {
+  Visibility,
+  VisibilityOff,
+  Email,
+  ArrowBack,
+  Google,
+  GitHub,
+} from "@mui/icons-material";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/ToastProvider.jsx";
+
+/* ---------------------------------------------
+   STEP COMPONENTS (OUTSIDE Register => STABLE)
+----------------------------------------------*/
+
+const Step1 = React.memo(function Step1({ role, onPickRole }) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+      <Typography variant="h5" fontWeight={700} textAlign="center">
+        Create a new account
+      </Typography>
+      <Typography textAlign="center" sx={{ mb: 3 }} color="text.secondary">
+        Choose how you want to get started
+      </Typography>
+
+      <Stack direction="row" spacing={2}>
+        {[
+          { id: "candidate", label: "Candidate", desc: "Apply & learn" },
+          { id: "recruiter", label: "Recruiter", desc: "Host & hire" },
+        ].map((opt) => (
+          <motion.div
+            key={opt.id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onPickRole(opt.id)}
+            style={{
+              flex: 1,
+              padding: "20px",
+              borderRadius: "16px",
+              cursor: "pointer",
+              background:
+                role === opt.id
+                  ? "linear-gradient(135deg,#667eea,#764ba2)"
+                  : "#f5f5ff",
+              color: role === opt.id ? "#fff" : "#333",
+              boxShadow:
+                role === opt.id
+                  ? "0 4px 16px rgba(102,126,234,0.5)"
+                  : "0 2px 8px rgba(0,0,0,0.1)",
+            }}
+          >
+            <Typography variant="h6" fontWeight={700}>
+              {opt.label}
+            </Typography>
+            <Typography variant="body2">{opt.desc}</Typography>
+          </motion.div>
+        ))}
+      </Stack>
+    </motion.div>
+  );
+});
+
+const Step2 = React.memo(function Step2({
+  email,
+  otp,
+  emailVerified,
+  otpSent,
+  onBack,
+  onChangeEmail,
+  onChangeOtp,
+  onSendOtp,
+  onVerifyOtp,
+  loading,
+}) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+      <Button startIcon={<ArrowBack />} onClick={onBack} sx={{ mb: 1 }}>
+        Back
+      </Button>
+      <Typography variant="h6" textAlign="center" sx={{ mb: 2 }}>
+        Verify your email ✉️
+      </Typography>
+
+      <TextField
+        label="Email"
+        value={email}
+        onChange={onChangeEmail}
+        fullWidth
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <Email color={emailVerified ? "success" : "disabled"} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {otpSent ? (
+        <>
+          <TextField
+            label="Enter OTP"
+            value={otp}
+            onChange={onChangeOtp}
+            fullWidth
+            sx={{ mt: 2 }}
+          />
+          <Button
+            variant="contained"
+            sx={{ mt: 1 }}
+            onClick={onVerifyOtp}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={20} /> : "Verify Email"}
+          </Button>
+        </>
+      ) : (
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={onSendOtp}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={20} /> : "Send OTP"}
+        </Button>
+      )}
+    </motion.div>
+  );
+});
+
+const Step3 = React.memo(function Step3({
+  role,
+  name,
+  phone,
+  orgName,
+  password,
+  confirmPassword,
+  agree,
+  showPassword,
+  onBack,
+  onChangeName,
+  onChangePhone,
+  onChangeOrgName,
+  onChangePassword,
+  onChangeConfirmPassword,
+  onToggleShowPassword,
+  onToggleAgree,
+  onSubmit,
+  loading,
+}) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+      <Button startIcon={<ArrowBack />} onClick={onBack} sx={{ mb: 1 }}>
+        Back
+      </Button>
+      <Typography variant="h6" textAlign="center" sx={{ mb: 2 }}>
+        Complete your profile 👤
+      </Typography>
+
+      <TextField
+        label="Full Name"
+        value={name}
+        onChange={onChangeName}
+        fullWidth
+      />
+      <TextField
+        label="Phone Number"
+        value={phone}
+        onChange={onChangePhone}
+        fullWidth
+        sx={{ mt: 2 }}
+      />
+      {role === "recruiter" && (
+        <TextField
+          label="Organization Name"
+          value={orgName}
+          onChange={onChangeOrgName}
+          fullWidth
+          sx={{ mt: 2 }}
+        />
+      )}
+      <TextField
+        label="Password"
+        type={showPassword ? "text" : "password"}
+        value={password}
+        onChange={onChangePassword}
+        fullWidth
+        sx={{ mt: 2 }}
+        InputProps={{
+          endAdornment: (
+            <IconButton onClick={onToggleShowPassword}>
+              {showPassword ? <VisibilityOff /> : <Visibility />}
+            </IconButton>
+          ),
+        }}
+      />
+      <TextField
+        label="Confirm Password"
+        type={showPassword ? "text" : "password"}
+        value={confirmPassword}
+        onChange={onChangeConfirmPassword}
+        fullWidth
+        sx={{ mt: 2 }}
+      />
+
+      <FormControlLabel
+        sx={{ mt: 1 }}
+        control={<Checkbox checked={agree} onChange={onToggleAgree} />}
+        label="I agree to the Terms & Privacy Policy"
+      />
+
+      <Button variant="contained" onClick={onSubmit} disabled={loading} sx={{ mt: 2 }}>
+        {loading ? <CircularProgress size={20} /> : "Create Account"}
+      </Button>
+
+      <Divider sx={{ my: 2 }}>OR</Divider>
+
+      <Stack spacing={1}>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<Google />}
+          onClick={() =>
+            (window.location.href = "http://localhost:5000/api/auth/google")
+          }
+        >
+          Continue with Google
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<GitHub />}
+          onClick={() =>
+            (window.location.href = "http://localhost:5000/api/auth/github")
+          }
+        >
+          Continue with GitHub
+        </Button>
+      </Stack>
+    </motion.div>
+  );
+});
+
+const Step4 = React.memo(function Step4() {
+  return (
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+      <Typography variant="h5" textAlign="center">
+        🎉 Account Created!
+      </Typography>
+      <Typography textAlign="center" color="text.secondary">
+        Redirecting to login...
+      </Typography>
+    </motion.div>
+  );
+});
+
+/* ---------------------------------------------
+                 MAIN REGISTER
+----------------------------------------------*/
 
 export default function Register() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { setToken } = useAuth();
+  const { showToast } = useToast();
+
+  const [step, setStep] = useState(1);
+  const [role, setRole] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
+    orgName: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
+    otp: "",
     agree: false,
   });
 
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [emailValid, setEmailValid] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
+  // stable setters (avoid recreating functions each render)
+  const set = useCallback(
+    (key, val) => setForm((f) => ({ ...f, [key]: val })),
+    []
+  );
 
-  // ✅ Auto-login after OAuth redirect
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get("token");
-    if (token) {
-      setToken(token);
-      navigate("/dashboard");
-    }
-  }, [location.search]);
-
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
-    if (name === "email") {
-      setEmailValid(validateEmail(value));
-      setEmailVerified(false);
-      setOtpSent(false);
-    }
-  };
-
-  const handleSendOtp = async () => {
-    if (!emailValid) return setErr("Please enter a valid email address.");
-    setErr("");
-    setMsg("");
+  /* ===== Send OTP ===== */
+  const sendOtp = useCallback(async () => {
+    if (!form.email) return showToast("Please enter your email", "warning");
     setLoading(true);
     try {
       const res = await fetch("http://localhost:5000/api/auth/send-verification-otp", {
@@ -78,256 +313,213 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to send OTP");
-      setMsg("✅ Verification OTP sent to your email. Please check your inbox.");
+      showToast("OTP sent to your email ✅", "success");
       setOtpSent(true);
-    } catch (error) {
-      setErr(error.message);
+    } catch (err) {
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [form.email, showToast]);
 
-  const handleVerifyOtp = async () => {
-    if (!otp) return setErr("Please enter the OTP sent to your email.");
-    setVerifying(true);
+  /* ===== Verify OTP ===== */
+  const verifyOtp = useCallback(async () => {
+    if (!form.otp) return showToast("Enter the OTP sent to your email", "warning");
+    setLoading(true);
     try {
       const res = await fetch("http://localhost:5000/api/auth/verify-verification-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, otp }),
+        body: JSON.stringify({ email: form.email, otp: form.otp }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "OTP verification failed");
-      setMsg("✅ Email verified successfully!");
-      setOtpSent(false);
+      showToast("Email verified successfully ✅", "success");
       setEmailVerified(true);
-    } catch (error) {
-      setErr(error.message);
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErr("");
-    setMsg("");
-
-    if (form.password !== form.confirmPassword)
-      return setErr("Passwords do not match!");
-    if (!form.agree) return setErr("Please accept the terms and conditions.");
-    if (!emailValid) return setErr("Please enter a valid email address.");
-    if (!emailVerified)
-      return setErr("Please verify your email before creating an account.");
-
-    setLoading(true);
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/register-candidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registration failed");
-      setMsg("✅ Registration successful! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (error) {
-      setErr(error.message);
+      setStep(3);
+    } catch (err) {
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [form.email, form.otp, showToast]);
 
-  const handleOAuth = (provider) => {
-    window.location.href = `http://localhost:5000/api/auth/${provider}`;
-  };
+  /* ===== Register ===== */
+  const registerUser = useCallback(async () => {
+    if (!form.name || !form.phone || !form.password || !form.confirmPassword)
+      return showToast("All fields are required", "warning");
+    if (form.password !== form.confirmPassword)
+      return showToast("Passwords do not match", "error");
+    if (!form.agree) return showToast("Please agree to the terms", "warning");
 
+    setLoading(true);
+    try {
+      const endpoint =
+        role === "recruiter" ? "register-recruiter" : "register-candidate";
+
+      const payload =
+        role === "recruiter"
+          ? {
+              name: form.name,
+              orgName: form.orgName,
+              email: form.email,
+              password: form.password,
+              mobile: form.phone,
+            }
+          : {
+              name: form.name,
+              email: form.email,
+              password: form.password,
+              mobile: form.phone,
+            };
+
+      const res = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Registration failed");
+
+      showToast("Account created successfully ✅", "success");
+      setStep(4);
+      setTimeout(() => navigate("/login"), 1500);
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [form, role, navigate, showToast]);
+
+  /* ===== Callbacks passed to Step2/3 to keep focus ===== */
+  const handlers = useMemo(
+    () => ({
+      onChangeEmail: (e) => set("email", e.target.value),
+      onChangeOtp: (e) => set("otp", e.target.value),
+      onChangeName: (e) => set("name", e.target.value),
+      onChangePhone: (e) => set("phone", e.target.value),
+      onChangeOrgName: (e) => set("orgName", e.target.value),
+      onChangePassword: (e) => set("password", e.target.value),
+      onChangeConfirmPassword: (e) => set("confirmPassword", e.target.value),
+    }),
+    [set]
+  );
+
+  /* ===== UI ===== */
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      style={{
-        minHeight: "100vh",
+    <Box
+      sx={{
         display: "flex",
-        alignItems: "center",
         justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
         background: "linear-gradient(135deg, #eef2ff, #f7f8ff)",
-        padding: "30px",
-        position: "relative",
-        overflow: "hidden",
+        px: 2,
       }}
     >
-      <BackgroundGlow />
-      <Card
+      <Box
         sx={{
-          maxWidth: 450,
-          width: "100%",
-          borderRadius: 4,
-          boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
-          background: "rgba(255,255,255,0.9)",
-          backdropFilter: "blur(20px)",
+          display: "flex",
+          width: "92%",
+          maxWidth: 980,
+          borderRadius: 5,
+          overflow: "hidden",
+          boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
         }}
       >
-        <CardContent>
-          <Typography variant="h4" textAlign="center" fontWeight={700} gutterBottom>
-            ✨ Create Your Account
+        {/* Left side (illustration/progress) */}
+        <Box
+          sx={{
+            flex: 1,
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "#fff",
+            p: 4,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h4" fontWeight={700} textAlign="center">
+            Welcome to <span style={{ color: "#ffb6ec" }}>OneStop Hub</span>
           </Typography>
-          <Typography textAlign="center" color="text.secondary" mb={3}>
-            Join the <b>OneStop Hub</b> community 🌟
+          <Typography sx={{ mt: 1 }} textAlign="center">
+            Host hackathons, hire talent, and manage events.
           </Typography>
 
-          {msg && <Typography color="green" textAlign="center">{msg}</Typography>}
-          {err && <Typography color="red" textAlign="center">{err}</Typography>}
-
-          <form onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              margin="normal"
-              required
-            />
-
-            {/* Email + OTP */}
-            <Box display="flex" alignItems="center" gap={1}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                margin="normal"
-                required
-                error={form.email && !emailValid}
-                helperText={
-                  form.email && !emailValid
-                    ? "Enter a valid email"
-                    : emailVerified
-                    ? "✅ Verified"
-                    : ""
-                }
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Email color={emailVerified ? "success" : "disabled"} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={handleSendOtp}
-                disabled={!emailValid || loading || emailVerified}
-                sx={{ whiteSpace: "nowrap", mt: 1 }}
-              >
-                {emailVerified ? "Verified" : "Send OTP"}
-              </Button>
-            </Box>
-
-            {otpSent && (
-              <Box display="flex" gap={1} mt={1}>
-                <TextField
-                  label="Enter OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  fullWidth
-                />
-                <Button variant="outlined" onClick={handleVerifyOtp} disabled={verifying}>
-                  {verifying ? "Verifying..." : "Verify"}
-                </Button>
-              </Box>
-            )}
-
-            {/* Password Fields */}
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              value={form.password}
-              onChange={handleChange}
-              required
-              margin="normal"
-              InputProps={{
-                endAdornment: (
-                  <IconButton onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                ),
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="Confirm Password"
-              name="confirmPassword"
-              type={showPassword ? "text" : "password"}
-              value={form.confirmPassword}
-              onChange={handleChange}
-              required
-              margin="normal"
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox name="agree" checked={form.agree} onChange={handleChange} />
-              }
-              label="I agree to the Terms & Privacy Policy"
-            />
-
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
+          <Box sx={{ width: "80%", mt: 4 }}>
+            <LinearProgress
+              variant="determinate"
+              value={(step / 4) * 100}
               sx={{
-                py: 1.3,
-                fontWeight: 600,
-                background: "linear-gradient(135deg, #667eea, #764ba2)",
+                height: 8,
+                borderRadius: 4,
+                background: "rgba(255,255,255,0.25)",
+                "& .MuiLinearProgress-bar": { backgroundColor: "#fff" },
               }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : "Register"}
-            </Button>
-          </form>
-
-          <Divider sx={{ my: 3 }}>OR</Divider>
-
-          <Stack spacing={2}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Google />}
-              onClick={() => handleOAuth("google")}
-            >
-              Sign up with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GitHub />}
-              onClick={() => handleOAuth("github")}
-            >
-              Sign up with GitHub
-            </Button>
-          </Stack>
-
-          <Box textAlign="center" mt={3}>
-            <Typography variant="body2">
-              Already have an account?{" "}
-              <Link to="/login" style={{ color: "#667eea", fontWeight: 600 }}>
-                Sign In
-              </Link>
+            />
+            <Typography sx={{ mt: 1, fontWeight: 600, textAlign: "center" }}>
+              Step {step} of 4
             </Typography>
           </Box>
-        </CardContent>
-      </Card>
-    </motion.section>
+        </Box>
+
+        {/* Right side (form) */}
+        <Box
+          sx={{
+            flex: 1,
+            background: "#fff",
+            p: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {step === 1 && (
+            <Step1 role={role} onPickRole={(id) => { setRole(id); setStep(2); }} />
+          )}
+
+          {step === 2 && (
+            <Step2
+              email={form.email}
+              otp={form.otp}
+              emailVerified={emailVerified}
+              otpSent={otpSent}
+              onBack={() => setStep(1)}
+              onChangeEmail={handlers.onChangeEmail}
+              onChangeOtp={handlers.onChangeOtp}
+              onSendOtp={sendOtp}
+              onVerifyOtp={verifyOtp}
+              loading={loading}
+            />
+          )}
+
+          {step === 3 && (
+            <Step3
+              role={role}
+              name={form.name}
+              phone={form.phone}
+              orgName={form.orgName}
+              password={form.password}
+              confirmPassword={form.confirmPassword}
+              agree={form.agree}
+              showPassword={showPassword}
+              onBack={() => setStep(2)}
+              onChangeName={handlers.onChangeName}
+              onChangePhone={handlers.onChangePhone}
+              onChangeOrgName={handlers.onChangeOrgName}
+              onChangePassword={handlers.onChangePassword}
+              onChangeConfirmPassword={handlers.onChangeConfirmPassword}
+              onToggleShowPassword={() => setShowPassword((v) => !v)}
+              onToggleAgree={(e) => set("agree", e.target.checked)}
+              onSubmit={registerUser}
+              loading={loading}
+            />
+          )}
+
+          {step === 4 && <Step4 />}
+        </Box>
+      </Box>
+    </Box>
   );
 }
