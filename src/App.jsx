@@ -1,5 +1,5 @@
 // ✅ src/App.jsx
-import React, { useEffect } from "react";
+import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -146,7 +146,10 @@ export default function App() {
                   <Route path="/events" element={<ProtectedRoute><EventsList /></ProtectedRoute>} />
                   <Route path="/events/:id" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
                   <Route path="/events/submit/:id" element={<ProtectedRoute><SubmitEntry /></ProtectedRoute>} />
-                  <Route path="/events/leaderboard/:id" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+
+                  {/* ✅ FIXED LEADERBOARD ROUTE */}
+                  <Route path="/events/:id/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+
                   <Route path="/events/my/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
 
                   {/* ADMIN EVENT ROUTES */}

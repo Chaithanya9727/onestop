@@ -14,7 +14,6 @@ import {
   Box,
   IconButton,
   InputAdornment,
-  MenuItem,
   Alert,
 } from "@mui/material";
 import { Visibility, VisibilityOff, GitHub, Google, Email } from "@mui/icons-material";
@@ -25,11 +24,12 @@ export default function Login() {
   const location = useLocation();
   const { setToken } = useAuth();
 
+  // ⬇️ Removed selectedRole
   const [form, setForm] = useState({
     email: "",
     password: "",
-    selectedRole: "",
   });
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -45,21 +45,22 @@ export default function Login() {
     }
   }, [location.search]);
 
-  const handleChange = (e) => {
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
-  };
+  const handleChange = (e) =>
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErr("");
     setMsg("");
+
     try {
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || "Login failed");
@@ -67,13 +68,12 @@ export default function Login() {
       setToken(data.token);
       setMsg(`✅ Welcome back, ${data.name || "User"}! Redirecting...`);
 
-      // 🔀 Redirect based on role
       setTimeout(() => {
         const role = data.role?.toLowerCase();
 
         if (role === "admin" || role === "superadmin") navigate("/admin");
         else if (role === "mentor") navigate("/mentor/dashboard");
-        else if (role === "recruiter") navigate("/rpanel/overview"); // ✅ Recruiter fix
+        else if (role === "recruiter") navigate("/rpanel/overview");
         else navigate("/dashboard");
       }, 1000);
     } catch (error) {
@@ -103,6 +103,7 @@ export default function Login() {
       }}
     >
       <BackgroundGlow />
+
       <Card
         sx={{
           maxWidth: 440,
@@ -122,6 +123,7 @@ export default function Login() {
           {err && <Alert severity="error" sx={{ mb: 2 }}>{err}</Alert>}
 
           <form onSubmit={handleSubmit}>
+            {/* Email */}
             <TextField
               fullWidth
               label="Email"
@@ -139,6 +141,7 @@ export default function Login() {
               }}
             />
 
+            {/* Password */}
             <TextField
               fullWidth
               label="Password"
@@ -156,24 +159,6 @@ export default function Login() {
                 ),
               }}
             />
-
-            <TextField
-              select
-              fullWidth
-              label="Select Role"
-              name="selectedRole"
-              value={form.selectedRole}
-              onChange={handleChange}
-              margin="normal"
-              required
-              helperText="Select the role assigned to your account"
-            >
-              <MenuItem value="candidate">Student</MenuItem>
-              <MenuItem value="mentor">Mentor</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="superadmin">Super Admin</MenuItem>
-              <MenuItem value="recruiter">Recruiter</MenuItem>
-            </TextField>
 
             <Button
               type="submit"
@@ -193,6 +178,7 @@ export default function Login() {
 
           <Divider sx={{ my: 3 }}>OR</Divider>
 
+          {/* OAuth Buttons */}
           <Stack spacing={2}>
             <Button
               fullWidth

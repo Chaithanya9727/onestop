@@ -1,3 +1,5 @@
+// ✅ src/pages/events/Leaderboard.jsx
+
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -26,27 +28,38 @@ export default function Leaderboard() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [meta, setMeta] = useState({ totalParticipants: 0, totalSubmissions: 0 });
+  const [meta, setMeta] = useState({
+    totalParticipants: 0,
+    totalSubmissions: 0,
+  });
 
   const load = async () => {
     try {
       setLoading(true);
       setErr("");
+
       const res = await get(`/events/${eventId}/leaderboard`);
-      const { leaderboard, totalParticipants, totalSubmissions } = res;
+
+      const {
+        leaderboard = [],
+        totalParticipants = 0,
+        totalSubmissions = 0,
+      } = res;
+
       setRows(
         leaderboard.map((r, i) => ({
           id: i + 1,
-          rank: r.rank || "—",
-          name: r.name,
-          email: r.email,
-          teamName: r.teamName,
-          finalScore: r.finalScore,
-          feedback: r.feedback,
-          submittedAt: r.submittedAt,
-          lastUpdated: r.lastUpdated,
+          rank: r.rank ?? "—",
+          name: r.name ?? "—",
+          email: r.email ?? "—",
+          teamName: r.teamName ?? "—",
+          finalScore: r.finalScore ?? null,
+          feedback: r.feedback ?? "",
+          submittedAt: r.submittedAt ?? null,
+          lastUpdated: r.lastUpdated ?? null,
         }))
       );
+
       setMeta({ totalParticipants, totalSubmissions });
     } catch (e) {
       console.error("Leaderboard load error:", e);
@@ -68,41 +81,53 @@ export default function Leaderboard() {
       renderCell: (params) => {
         const rank = params.value;
         if (rank === "—") return <Chip label="N/A" size="small" />;
-        const color = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "default";
-        const chipColor =
-          color === "gold"
+
+        const color =
+          rank === 1
             ? "#FFD700"
-            : color === "silver"
+            : rank === 2
             ? "#C0C0C0"
-            : color === "bronze"
+            : rank === 3
             ? "#CD7F32"
             : "";
+
         return (
           <Chip
             size="small"
             label={rank}
             sx={{
-              backgroundColor: chipColor || "transparent",
+              backgroundColor: color || "transparent",
               fontWeight: 700,
-              color: chipColor ? "#000" : "inherit",
+              color: color ? "#000" : "inherit",
             }}
           />
         );
       },
     },
+
     { field: "name", headerName: "Participant", flex: 1, minWidth: 160 },
     { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
     { field: "teamName", headerName: "Team", flex: 1, minWidth: 180 },
+
     {
       field: "finalScore",
       headerName: "Score",
-      minWidth: 120,
+      minWidth: 110,
       renderCell: (params) => {
         const score = params.value;
+
         if (score == null)
           return <Chip label="—" size="small" variant="outlined" />;
+
         const color =
-          score >= 90 ? "success" : score >= 75 ? "info" : score >= 50 ? "warning" : "error";
+          score >= 90
+            ? "success"
+            : score >= 75
+            ? "info"
+            : score >= 50
+            ? "warning"
+            : "error";
+
         return (
           <Chip
             size="small"
@@ -113,6 +138,7 @@ export default function Leaderboard() {
         );
       },
     },
+
     {
       field: "feedback",
       headerName: "Feedback",
@@ -121,10 +147,7 @@ export default function Leaderboard() {
       renderCell: (params) =>
         params.value ? (
           <Tooltip title={params.value}>
-            <Typography
-              noWrap
-              sx={{ fontSize: 13, color: "text.secondary" }}
-            >
+            <Typography noWrap sx={{ fontSize: 13, color: "text.secondary" }}>
               {params.value}
             </Typography>
           </Tooltip>
@@ -132,12 +155,19 @@ export default function Leaderboard() {
           <Typography sx={{ color: "text.disabled", fontSize: 13 }}>—</Typography>
         ),
     },
+
     {
       field: "submittedAt",
       headerName: "Submitted At",
       minWidth: 180,
-      valueGetter: (p) =>
-        p.value ? new Date(p.value).toLocaleString() : "—",
+      valueGetter: (params) => {
+        if (!params || !params.value) return "—";
+        try {
+          return new Date(params.value).toLocaleString();
+        } catch {
+          return "—";
+        }
+      },
     },
   ];
 
@@ -149,10 +179,13 @@ export default function Leaderboard() {
             <ArrowBackIcon />
           </IconButton>
         </Tooltip>
+
         <Typography variant="h5" fontWeight={800}>
           Event Leaderboard
         </Typography>
+
         <Box flexGrow={1} />
+
         <Tooltip title="Refresh">
           <IconButton onClick={load}>
             <RefreshIcon />
@@ -171,12 +204,7 @@ export default function Leaderboard() {
         )}
 
         {loading ? (
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            py={10}
-          >
+          <Box display="flex" justifyContent="center" alignItems="center" py={10}>
             <CircularProgress />
           </Box>
         ) : (

@@ -51,7 +51,6 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
-// Helper for event status
 const getStatusMeta = (event) => {
   const now = new Date();
   const start = new Date(event.startDate);
@@ -67,7 +66,6 @@ export default function AdminEventManager() {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  // pagination + filters
   const [serverPage, setServerPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
@@ -86,7 +84,6 @@ export default function AdminEventManager() {
   const [editEvent, setEditEvent] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Fetch events from API
   const load = async (pageIndex = serverPage, limit = rowsPerPage, cat = category, q = search) => {
     setLoading(true);
     try {
@@ -105,26 +102,21 @@ export default function AdminEventManager() {
     }
   };
 
-  // Initial & refetch when filters change
   useEffect(() => {
     load(0, rowsPerPage, category, search);
     setServerPage(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, search]);
 
-  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 400);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Client status filter
   const filteredByStatus = useMemo(() => {
     if (tabStatus === "all") return events;
     return events.filter((e) => getStatusMeta(e).key === tabStatus);
   }, [events, tabStatus]);
 
-  // Sorting (client page)
   const comparator = (a, b, key) => {
     const av = a?.[key];
     const bv = b?.[key];
@@ -160,7 +152,6 @@ export default function AdminEventManager() {
     }
   };
 
-  // Edit / Delete actions
   const handleDelete = async () => {
     try {
       await del(`/events/${confirmDelete._id}`);
@@ -188,13 +179,7 @@ export default function AdminEventManager() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <Box sx={{ p: 3 }}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          justifyContent="space-between"
-          alignItems={{ xs: "stretch", md: "center" }}
-          spacing={2}
-          mb={2}
-        >
+        <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" mb={2}>
           <Typography variant="h4" fontWeight={700}>
             🏆 Manage Events
           </Typography>
@@ -247,7 +232,6 @@ export default function AdminEventManager() {
             onChange={(_e, v) => setTabStatus(v)}
             variant="scrollable"
             scrollButtons
-            allowScrollButtonsMobile
           >
             <Tab value="all" label="All" />
             <Tab value="upcoming" label="Upcoming" />
@@ -256,7 +240,7 @@ export default function AdminEventManager() {
           </Tabs>
         </Paper>
 
-        <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
+        <Paper sx={{ borderRadius: 3 }}>
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
               <CircularProgress />
@@ -289,9 +273,7 @@ export default function AdminEventManager() {
                     {sortedRows.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} align="center">
-                          <Typography color="text.secondary" sx={{ py: 4 }}>
-                            No events found
-                          </Typography>
+                          <Typography sx={{ py: 4 }}>No events found</Typography>
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -317,12 +299,13 @@ export default function AdminEventManager() {
                                   <IconButton
                                     color="primary"
                                     onClick={() =>
-                                      navigate(`/events/${event._id}/registrations`)
+                                      navigate(`/admin/events/registrations/${event._id}`)
                                     }
                                   >
                                     <GroupIcon />
                                   </IconButton>
                                 </Tooltip>
+
                                 <Tooltip title="View Leaderboard">
                                   <IconButton
                                     color="success"
@@ -333,15 +316,20 @@ export default function AdminEventManager() {
                                     <EmojiEventsIcon />
                                   </IconButton>
                                 </Tooltip>
+
                                 {["admin", "mentor", "superadmin"].includes(
-                                  (role || "").toLowerCase()
+                                  role?.toLowerCase()
                                 ) && (
                                   <>
                                     <Tooltip title="Edit">
-                                      <IconButton color="info" onClick={() => setEditEvent(event)}>
+                                      <IconButton
+                                        color="info"
+                                        onClick={() => setEditEvent(event)}
+                                      >
                                         <EditIcon />
                                       </IconButton>
                                     </Tooltip>
+
                                     <Tooltip title="Delete">
                                       <IconButton
                                         color="error"
@@ -363,19 +351,19 @@ export default function AdminEventManager() {
               </TableContainer>
 
               <TablePagination
-                component="div"
                 count={totalCount}
                 rowsPerPage={rowsPerPage}
                 page={serverPage}
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
               />
             </>
           )}
         </Paper>
 
-        {/* ✏️ Edit Dialog */}
+        {/* EDIT DIALOG */}
         <Dialog open={!!editEvent} onClose={() => setEditEvent(null)} fullWidth maxWidth="sm">
           <DialogTitle>Edit Event</DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
@@ -418,18 +406,17 @@ export default function AdminEventManager() {
           </DialogActions>
         </Dialog>
 
-        {/* 🗑️ Delete Confirmation */}
-        <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)} fullWidth maxWidth="xs">
+        {/* DELETE DIALOG */}
+        <Dialog open={!!confirmDelete} onClose={() => setConfirmDelete(null)} maxWidth="xs" fullWidth>
           <DialogTitle>Delete Event</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete{" "}
-              <strong>{confirmDelete?.title}</strong>?
+              Are you sure you want to delete <strong>{confirmDelete?.title}</strong>?
             </Typography>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setConfirmDelete(null)}>Cancel</Button>
-            <Button variant="contained" color="error" onClick={handleDelete}>
+            <Button color="error" variant="contained" onClick={handleDelete}>
               Delete
             </Button>
           </DialogActions>
