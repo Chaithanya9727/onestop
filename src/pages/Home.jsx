@@ -80,7 +80,7 @@ const Hero = () => {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </span>
           <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-            Over 100k+ Developers Hired
+            Development Ecosystem
           </span>
         </motion.div>
 
@@ -93,7 +93,7 @@ const Hero = () => {
         </h1>
 
         <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
-          The all-in-one ecosystem for developers. From learning your first line of code to landing your dream job at a FAANG company.
+          The all-in-one ecosystem for people. From learning your first line of code to landing your dream job at your favorite company.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
