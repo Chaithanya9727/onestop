@@ -1,21 +1,7 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  CircularProgress,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Button,
-  Chip,
-  Stack,
-  Tooltip,
-} from "@mui/material";
 import { motion } from "framer-motion";
 import useApi from "../hooks/useApi";
+import { CheckCircle, XCircle, Briefcase, Mail, Phone, Loader } from "lucide-react";
 
 export default function AdminRecruiterApprovals() {
   const { get, patch } = useApi();
@@ -24,14 +10,16 @@ export default function AdminRecruiterApprovals() {
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState("");
 
-  // Fetch pending recruiters (backend now returns an array)
   const fetchRecruiters = async () => {
     setLoading(true);
     setError("");
     try {
       const list = await get("/admin/recruiters");
-      // The API returns an array directly
-      setRecruiters(Array.isArray(list) ? list : list?.data || []);
+      // Filter for only pending if the API returns mixed, generally approval page is for pending
+      const allRecruiters = Array.isArray(list) ? list : list?.data || [];
+      // If we want to show all but highlight pending, we can keep all. 
+      // Existing code showed all but actions only for pending. Let's stick to that.
+      setRecruiters(allRecruiters);
     } catch (err) {
       console.error(err);
       setError("Failed to load recruiter data.");
@@ -49,12 +37,10 @@ export default function AdminRecruiterApprovals() {
     setActionLoading(id);
     setError("");
     try {
-      // action: "approve" | "reject"
-      const res = await patch(`/admin/recruiters/${id}/${action}`);
-      const serverStatus = res?.status || (action === "approve" ? "approved" : "rejected");
-
-      // Remove from the list (we only show pending)
-      setRecruiters((prev) => prev.filter((r) => r._id !== id));
+      await patch(`/admin/recruiters/${id}/${action}`);
+      setRecruiters((prev) => prev.map(r => 
+        r._id === id ? { ...r, status: action === 'approve' ? 'approved' : 'rejected' } : r
+      ));
     } catch (err) {
       console.error(err);
       setError("Action failed. Please try again.");
@@ -63,120 +49,94 @@ export default function AdminRecruiterApprovals() {
     }
   };
 
+  if (loading) return <div className="flex justify-center items-center h-screen"><Loader className="animate-spin text-blue-600" size={32} /></div>;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 25 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      className="max-w-7xl mx-auto p-6 pb-20"
     >
-      <Typography
-        variant="h5"
-        fontWeight={700}
-        mb={3}
-        sx={{
-          background: "linear-gradient(90deg, #6c63ff, #ff4081)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        🧾 Recruiter Approvals
-      </Typography>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+          <span className="p-2.5 bg-pink-50 text-pink-600 rounded-xl"><Briefcase size={28} /></span>
+          Recruiter Approvals
+        </h1>
+        <p className="text-slate-500 font-medium mt-2 ml-1">Validate incoming recruiter registrations.</p>
+      </div>
 
       {error && (
-        <Typography color="error" mb={2}>
-          {error}
-        </Typography>
+        <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-xl font-bold border border-red-100">
+           {error}
+        </div>
       )}
 
-      {loading ? (
-        <Box display="flex" justifyContent="center" py={6}>
-          <CircularProgress />
-        </Box>
-      ) : recruiters.length === 0 ? (
-        <Typography color="text.secondary" textAlign="center" mt={4}>
-          No recruiter applications pending.
-        </Typography>
+      {recruiters.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+           <p className="text-slate-400 font-bold text-lg">No recruiter applications pending.</p>
+        </div>
       ) : (
-        <Paper
-          elevation={3}
-          sx={{
-            borderRadius: 3,
-            overflow: "hidden",
-            background:
-              "linear-gradient(135deg, rgba(255,255,255,0.85), rgba(250,250,255,0.9))",
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: "bold" }}>Organization</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Recruiter Name</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {recruiters.map((rec) => (
-                <TableRow key={rec._id}>
-                  <TableCell>{rec.orgName || "—"}</TableCell>
-                  <TableCell>{rec.name || "—"}</TableCell>
-                  <TableCell>{rec.email}</TableCell>
-                  <TableCell>{rec.mobile || "—"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={rec.status}
-                      color={
-                        rec.status === "approved"
-                          ? "success"
-                          : rec.status === "rejected"
-                          ? "error"
-                          : "warning"
-                      }
-                      variant="filled"
-                      size="small"
-                      sx={{ textTransform: "capitalize", fontWeight: 600 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1}>
-                      {/* Only show actions for pending */}
-                      {rec.status === "pending" && (
-                        <>
-                          <Tooltip title="Approve recruiter" arrow>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="success"
-                              disabled={actionLoading === rec._id}
-                              onClick={() => handleAction(rec._id, "approve")}
-                            >
-                              {actionLoading === rec._id ? "..." : "Approve"}
-                            </Button>
-                          </Tooltip>
-
-                          <Tooltip title="Reject recruiter" arrow>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="error"
-                              disabled={actionLoading === rec._id}
-                              onClick={() => handleAction(rec._id, "reject")}
-                            >
-                              {actionLoading === rec._id ? "..." : "Reject"}
-                            </Button>
-                          </Tooltip>
-                        </>
-                      )}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Paper>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+           <div className="overflow-x-auto">
+             <table className="w-full text-left border-collapse">
+               <thead>
+                 <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold">
+                    <th className="px-6 py-4">Organization</th>
+                    <th className="px-6 py-4">Recruiter</th>
+                    <th className="px-6 py-4">Contact</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-100 text-sm">
+                 {recruiters.map((rec) => (
+                   <tr key={rec._id} className="hover:bg-slate-50 transition-colors">
+                     <td className="px-6 py-4 font-bold text-slate-800">{rec.orgName || "—"}</td>
+                     <td className="px-6 py-4 font-medium">{rec.name || "—"}</td>
+                     <td className="px-6 py-4 text-slate-500">
+                        <div className="flex flex-col gap-1">
+                           <span className="flex items-center gap-1.5"><Mail size={12} /> {rec.email}</span>
+                           <span className="flex items-center gap-1.5"><Phone size={12} /> {rec.mobile || "—"}</span>
+                        </div>
+                     </td>
+                     <td className="px-6 py-4">
+                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border
+                          ${rec.status === 'approved' ? 'bg-green-50 text-green-700 border-green-200' :
+                            rec.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'}`}
+                        >
+                           {rec.status}
+                        </span>
+                     </td>
+                     <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                           {rec.status === "pending" && (
+                             <>
+                               <button 
+                                 onClick={() => handleAction(rec._id, "approve")}
+                                 disabled={actionLoading === rec._id}
+                                 className="px-4 py-2 bg-green-600 text-white rounded-xl font-bold text-xs hover:bg-green-700 transition-colors shadow-lg shadow-green-200 flex items-center gap-2"
+                               >
+                                  {actionLoading === rec._id ? <Loader className="animate-spin" size={14} /> : <CheckCircle size={14} />} Approve
+                               </button>
+                               <button 
+                                 onClick={() => handleAction(rec._id, "reject")}
+                                 disabled={actionLoading === rec._id}
+                                 className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-100 transition-colors flex items-center gap-2"
+                               >
+                                  {actionLoading === rec._id ? <Loader className="animate-spin" size={14} /> : <XCircle size={14} />} Reject
+                               </button>
+                             </>
+                           )}
+                           {rec.status !== 'pending' && <span className="text-slate-400 font-medium text-xs">Completed</span>}
+                        </div>
+                     </td>
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
+           </div>
+        </div>
       )}
     </motion.div>
   );

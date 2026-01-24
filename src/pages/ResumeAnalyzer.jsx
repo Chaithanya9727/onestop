@@ -1,0 +1,298 @@
+import React, { useState } from 'react';
+import useApi from '../hooks/useApi';
+import { motion } from 'framer-motion';
+import { 
+  FileText, UploadCloud, CheckCircle, AlertTriangle, 
+  XCircle, Award, Shield, Briefcase, ChevronRight, Loader 
+} from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+
+export default function ResumeAnalyzer() {
+  const { post } = useApi();
+  const [file, setFile] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected && selected.type === "application/pdf") {
+      setFile(selected);
+      setError("");
+      setResult(null);
+    } else {
+      setError("Please upload a PDF file.");
+    }
+  };
+
+  const analyzeResume = async () => {
+    if (!file) return;
+    
+    setAnalyzing(true);
+    setResult(null);
+    
+    const formData = new FormData();
+    formData.append("resume", file);
+
+    try {
+      const res = await post('/ats/analyze', formData, true); 
+      setResult(res.data || res); 
+    } catch (err) {
+      console.error(err);
+      setError("Analysis failed. Please try again.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 90) return "#22c55e"; // green-500
+    if (score >= 70) return "#eab308"; // yellow-500
+    return "#ef4444"; // red-500
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-white p-6 md:p-12 font-sans relative overflow-hidden transition-colors duration-300">
+      {/* Background Decor */}
+      <div className="fixed inset-0 pointer-events-none">
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100 dark:bg-blue-600/10 rounded-full blur-[120px] transition-colors"></div>
+         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-100 dark:bg-purple-600/10 rounded-full blur-[120px] transition-colors"></div>
+      </div>
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        
+        {/* Header */}
+        <div className="text-center mb-16">
+          <motion.div 
+             initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-widest mb-6"
+          >
+            <Shield size={14} /> Beta Feature
+          </motion.div>
+          <motion.h1 
+             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+             className="text-5xl md:text-7xl font-black mb-6 tracking-tight text-slate-900 dark:text-white"
+          >
+            AI Resume Shield
+          </motion.h1>
+          <motion.p 
+             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+             className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed"
+          >
+            Beat the ATS bots. Get an instant score, actionable feedback, and increase your interview chances by <span className="text-blue-600 dark:text-white font-bold">3x</span>.
+          </motion.p>
+        </div>
+
+        {/* Upload Section */}
+        {!result && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className={`
+              border-2 border-dashed rounded-[2.5rem] p-12 text-center transition-all group relative overflow-hidden
+              ${file 
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' 
+                : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#0f1014] hover:border-blue-400 dark:hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-white/5'}
+            `}>
+               <input 
+                 type="file" 
+                 accept=".pdf"
+                 onChange={handleFileChange}
+                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+               />
+               
+               <div className="relative z-10 pointer-events-none">
+                 <div className={`w-24 h-24 mx-auto rounded-[2rem] flex items-center justify-center mb-8 transition-colors shadow-lg ${file ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 group-hover:scale-110 transition-transform'}`}>
+                    {file ? <FileText size={48} /> : <UploadCloud size={48} />}
+                 </div>
+                 
+                 {file ? (
+                   <div>
+                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{file.name}</h3>
+                     <p className="text-slate-500 dark:text-slate-400 font-medium">Ready to analyze</p>
+                   </div>
+                 ) : (
+                   <div>
+                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Drop your resume here</h3>
+                     <p className="text-slate-500 dark:text-slate-400 font-medium">PDF files only. Max 5MB.</p>
+                   </div>
+                 )}
+               </div>
+
+               {analyzing && (
+                 <div className="absolute inset-0 z-30 bg-white/90 dark:bg-[#0f1014]/90 backdrop-blur-sm flex items-center justify-center flex-col">
+                    <Loader className="animate-spin text-blue-600 mb-4" size={48} />
+                    <p className="text-blue-600 dark:text-blue-400 font-bold animate-pulse text-lg">Scanning keywords...</p>
+                 </div>
+               )}
+            </div>
+
+            {error && (
+              <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 rounded-2xl flex items-center gap-3 font-bold">
+                <AlertTriangle size={20} /> {error}
+              </div>
+            )}
+
+            <button 
+              onClick={analyzeResume}
+              disabled={!file || analyzing}
+              className={`
+                mt-8 w-full py-5 rounded-2xl font-black text-lg transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                ${!file || analyzing 
+                  ? 'bg-slate-200 dark:bg-white/5 text-slate-400 dark:text-slate-600 cursor-not-allowed shadow-none' 
+                  : 'bg-blue-600 text-white shadow-blue-600/20 hover:bg-blue-500'}
+              `}
+            >
+              Analyze Now
+            </button>
+          </motion.div>
+        )}
+
+        {/* Results Dashboard */}
+        {result && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+            
+            {/* Top Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Score Card */}
+              <div className="bg-white dark:bg-[#0f1014] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none">
+                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                 <div className="w-56 h-56 relative mb-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[{ value: result.score }, { value: 100 - result.score }]}
+                          innerRadius={70}
+                          outerRadius={90}
+                          startAngle={90}
+                          endAngle={-270}
+                          dataKey="value"
+                          stroke="none"
+                          cornerRadius={10}
+                          paddingAngle={5}
+                        >
+                          <Cell fill={getScoreColor(result.score)} />
+                          <Cell fill="currentColor" className="text-slate-100 dark:text-white/5" />
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                       <span className="text-6xl font-black text-slate-900 dark:text-white">{result.score}</span>
+                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">ATS Score</span>
+                    </div>
+                 </div>
+                 <h3 className="text-2xl font-bold" style={{ color: getScoreColor(result.score) }}>{result.verdict}</h3>
+              </div>
+
+              {/* Stats Card */}
+              <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                 <div className="bg-white dark:bg-[#0f1014] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-500/30 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none group">
+                    <div>
+                      <div className="w-12 h-12 bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm"><Briefcase size={24} /></div>
+                      <h4 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">Tech Keywords</h4>
+                    </div>
+                    <div>
+                      <div className="text-4xl font-black text-slate-900 dark:text-white mb-4">{result.details?.skillsDetected?.length || 0}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {result.details?.skillsDetected?.slice(0, 5).map(s => (
+                          <span key={s} className="text-xs px-2.5 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 rounded-lg border border-purple-100 dark:border-purple-500/20 capitalize font-bold">{s}</span>
+                        ))}
+                        {(result.details?.skillsDetected?.length > 5) && <span className="text-xs text-slate-400 font-bold self-center">+{result.details.skillsDetected.length - 5} more</span>}
+                      </div>
+                    </div>
+                 </div>
+
+                 <div className="bg-white dark:bg-[#0f1014] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between hover:border-blue-300 dark:hover:border-blue-500/30 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none group">
+                    <div>
+                      <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm"><FileText size={24} /></div>
+                      <h4 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">Word Count</h4>
+                    </div>
+                    <div>
+                      <div className="text-4xl font-black text-slate-900 dark:text-white mb-2">{result.details?.wordCount || 0}</div>
+                      <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                        {result.details?.wordCount > 400 ? "Optimal Length ✅" : "Too Short ⚠️"}
+                      </p>
+                    </div>
+                 </div>
+              </div>
+            </div>
+
+            {/* Detailed Feedback */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               
+               {/* ❌ Critical Issues */}
+               <div className="bg-white dark:bg-[#0f1014] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                  <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-8 flex items-center gap-3">
+                    <div className="p-2 bg-red-50 dark:bg-red-500/10 rounded-xl"><XCircle size={20}/></div> Critical Issues
+                  </h3>
+                  {result.feedback?.critical?.length > 0 ? (
+                    <ul className="space-y-4">
+                      {result.feedback.critical.map((item, i) => (
+                        <li key={i} className="flex gap-4 text-slate-700 dark:text-slate-300 bg-red-50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-red-500/20">
+                           <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={18} />
+                           <span className="text-sm font-bold leading-relaxed">{item.replace("❌ ", "")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-center py-12 text-slate-400 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
+                      <CheckCircle className="mx-auto mb-4 text-green-500" size={40} />
+                      <p className="font-bold">No critical issues found! Great job.</p>
+                    </div>
+                  )}
+               </div>
+
+               {/* 💡 Improvements */}
+               <div className="bg-white dark:bg-[#0f1014] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                  <h3 className="text-xl font-bold text-amber-600 dark:text-amber-400 mb-8 flex items-center gap-3">
+                    <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-xl"><Award size={20}/></div> Improvements
+                  </h3>
+                  {result.feedback?.improvements?.length > 0 ? (
+                    <ul className="space-y-4">
+                      {result.feedback.improvements.map((item, i) => (
+                        <li key={i} className="flex gap-4 text-slate-700 dark:text-slate-300 bg-amber-50 dark:bg-amber-900/10 p-5 rounded-2xl border border-amber-100 dark:border-amber-500/20">
+                           <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 shrink-0"></div>
+                           <span className="text-sm font-bold leading-relaxed">{item.replace("💡 ", "")}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-center py-12 text-slate-400 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
+                      <p className="font-bold">Your resume structure is solid!</p>
+                    </div>
+                  )}
+               </div>
+
+               {/* ✅ Strengths (Full Width) */}
+               <div className="lg:col-span-2 bg-white dark:bg-[#0f1014] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 dark:shadow-none">
+                  <h3 className="text-xl font-bold text-green-600 dark:text-green-400 mb-8 flex items-center gap-3">
+                    <div className="p-2 bg-green-50 dark:bg-green-500/10 rounded-xl"><CheckCircle size={20}/></div> What You Did Well
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {result.feedback?.strengths?.map((item, i) => (
+                       <div key={i} className="flex items-center gap-3 text-slate-700 dark:text-slate-300 bg-green-50 dark:bg-green-900/10 p-5 rounded-2xl border border-green-100 dark:border-green-500/10">
+                          <CheckCircle className="text-green-500 shrink-0" size={18} />
+                          <span className="text-sm font-bold">{item.replace("✅ ", "")}</span>
+                       </div>
+                    ))}
+                  </div>
+               </div>
+
+            </div>
+            
+            <div className="text-center pt-8 border-t border-slate-200 dark:border-white/10">
+               <button onClick={() => { setFile(null); setResult(null); }} className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-white font-bold transition-colors flex items-center gap-2 mx-auto decoration-2 underline decoration-transparent hover:decoration-current">
+                 Analyze another resume <ChevronRight size={16} />
+               </button>
+            </div>
+
+          </motion.div>
+        )}
+
+      </div>
+    </div>
+  );
+}

@@ -1,15 +1,7 @@
-// ✅ src/pages/AdminMetrics.jsx
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  CircularProgress,
-  Alert,
-} from "@mui/material";
 import { motion } from "framer-motion";
 import useApi from "../hooks/useApi";
+import { Briefcase, Users, UserCheck, Clock, TrendingUp } from "lucide-react";
 
 export default function AdminMetrics() {
   const { get } = useApi();
@@ -32,50 +24,26 @@ export default function AdminMetrics() {
     fetchInsights();
   }, []);
 
-  if (loading)
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" py={8}>
-        <CircularProgress />
-      </Box>
-    );
+  if (loading) {
+     return <div className="flex justify-center items-center py-20"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
+  }
 
-  if (error)
-    return (
-      <Box display="flex" justifyContent="center" py={8}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
+  if (error) {
+     return <div className="text-center py-10 text-red-500 font-bold">{error}</div>;
+  }
 
-  const Card = ({ title, value, subtitle, gradient }) => (
-    <Paper
-      elevation={3}
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        background: gradient || "linear-gradient(135deg, #f9f9ff, #ffffff)",
-        boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-      }}
-    >
-      <Typography
-        variant="overline"
-        color="text.secondary"
-        sx={{ fontWeight: 700 }}
-      >
-        {title}
-      </Typography>
-      <Typography
-        variant="h4"
-        fontWeight={800}
-        sx={{ color: "primary.main", mt: 0.5 }}
-      >
-        {value}
-      </Typography>
-      {subtitle && (
-        <Typography variant="caption" color="text.secondary">
-          {subtitle}
-        </Typography>
-      )}
-    </Paper>
+  const MetricCard = ({ title, value, subtitle, icon: Icon, color, bg }) => (
+    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+       <div className={`p-4 rounded-2xl ${bg} ${color} w-min mb-4`}>
+          <Icon size={24} />
+       </div>
+       <h3 className="text-3xl font-black text-slate-800 mb-1">{value}</h3>
+       <p className="text-slate-500 font-bold uppercase text-xs tracking-wider mb-2">{title}</p>
+       <p className="text-sm font-medium text-slate-400">{subtitle}</p>
+       <div className={`absolute -right-6 -bottom-6 opacity-10 ${color} group-hover:scale-110 transition-transform`}>
+          <Icon size={100} />
+       </div>
+    </div>
   );
 
   return (
@@ -83,65 +51,46 @@ export default function AdminMetrics() {
       initial={{ opacity: 0, y: 25 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
+      className="max-w-7xl mx-auto py-10"
     >
-      <Typography
-        variant="h4"
-        fontWeight={800}
-        mb={4}
-        sx={{
-          background: "linear-gradient(90deg, #4F46E5, #6C63FF)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        📊 System Insights Dashboard
-      </Typography>
+      <div className="mb-8">
+         <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2">
+            <TrendingUp className="text-blue-600" /> System Insights Dashboard
+         </h1>
+         <p className="text-slate-500 font-medium">Real-time platform metrics and hiring data.</p>
+      </div>
 
       {/* ===== GRID SECTION ===== */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card
-            title="Total Jobs"
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <MetricCard 
+            title="Total Jobs" 
             value={insights?.jobs?.totalJobs ?? 0}
-            subtitle={`Open: ${insights?.jobs?.openJobs ?? 0} • Closed: ${
-              insights?.jobs?.closedJobs ?? 0
-            }`}
-            gradient="linear-gradient(135deg, #6c63ff99, #6c63ff)"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card
-            title="Recruiters"
+            subtitle={`${insights?.jobs?.openJobs ?? 0} Open • ${insights?.jobs?.closedJobs ?? 0} Closed`}
+            icon={Briefcase}
+            color="text-blue-600"
+            bg="bg-blue-50"
+         />
+         <MetricCard 
+            title="Recruiters" 
             value={insights?.recruiters?.totalRecruiters ?? 0}
-            subtitle={`Approved: ${
-              insights?.recruiters?.approvedRecruiters ?? 0
-            } • Pending: ${insights?.recruiters?.pendingRecruiters ?? 0}`}
-            gradient="linear-gradient(135deg, #ff408199, #ff4081)"
-          />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card
-            title="Applicants"
+            subtitle={`${insights?.recruiters?.approvedRecruiters ?? 0} Approved • ${insights?.recruiters?.pendingRecruiters ?? 0} Pending`}
+            icon={Users}
+            color="text-pink-600"
+            bg="bg-pink-50"
+         />
+         <MetricCard 
+            title="Total Applicants" 
             value={insights?.applicants?.totalApplicants ?? 0}
-            subtitle={`Last 7 days: ${
-              insights?.applicants?.last7dApplicants ?? 0
-            }`}
-            gradient="linear-gradient(135deg, #2196f399, #2196f3)"
-          />
-        </Grid>
-      </Grid>
+            subtitle={`${insights?.applicants?.last7dApplicants ?? 0} in last 7 days`}
+            icon={UserCheck}
+            color="text-indigo-600"
+            bg="bg-indigo-50"
+         />
+      </div>
 
-      {/* ===== TIMESTAMP ===== */}
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        display="block"
-        mt={4}
-        textAlign="center"
-      >
-        Last updated:{" "}
-        {new Date(insights?.generatedAt || Date.now()).toLocaleString()}
-      </Typography>
+      <div className="mt-8 text-center bg-slate-50 p-4 rounded-xl text-slate-400 text-xs font-bold uppercase tracking-wider">
+         Last synced: {new Date(insights?.generatedAt || Date.now()).toLocaleString()}
+      </div>
     </motion.div>
   );
 }

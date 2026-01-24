@@ -1,23 +1,9 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Container,
-  Paper,
-  Typography,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Button,
-  Chip,
-  CircularProgress,
-  Stack,
-} from "@mui/material";
 import { motion } from "framer-motion";
 import useApi from "../../hooks/useApi";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../components/ToastProvider.jsx";
+import { ExternalLink, Trophy, RotateCw, Calendar, CheckCircle } from "lucide-react";
 
 export default function MyRegistrations() {
   const { get } = useApi();
@@ -31,7 +17,7 @@ export default function MyRegistrations() {
     try {
       const data = await get("/events/registrations/me");
       setRows(data.registrations || []);
-      showToast("✅ Loaded your registrations successfully", "success");
+      // showToast("✅ Loaded your registrations", "success");
     } catch (err) {
       console.error("MyRegistrations error:", err);
       showToast("❌ Failed to load your registrations", "error");
@@ -44,125 +30,92 @@ export default function MyRegistrations() {
     load();
   }, []);
 
-  const fmt = (d) => (d ? new Date(d).toLocaleDateString() : "—");
+  const fmt = (d) => (d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "—");
 
   const renderStatus = (r) => {
     switch (r.submissionStatus) {
       case "submitted":
-        return <Chip label="Submitted" color="success" size="small" />;
+        return <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><CheckCircle size={12}/> Submitted</span>;
       case "reviewed":
-        return <Chip label="Reviewed" color="info" size="small" />;
+        return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold flex items-center gap-1 w-fit"><CheckCircle size={12}/> Reviewed</span>;
       case "not_submitted":
       default:
-        return <Chip label="Not Submitted" color="warning" size="small" />;
+        return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold flex items-center gap-1 w-fit">Pending</span>;
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 25 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.4 }}
-    >
-      <Container sx={{ py: 4 }}>
-        <Paper sx={{ p: 3, borderRadius: 3 }}>
-          {/* Title Bar */}
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-          >
-            <Typography variant="h4" fontWeight={800}>
-              🎟️ My Event Registrations
-            </Typography>
-            <Button variant="outlined" onClick={load}>
-              Refresh
-            </Button>
-          </Stack>
+    <div className="bg-slate-50 min-h-screen py-10">
+       <div className="max-w-6xl mx-auto px-6">
+          
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+             <div className="flex justify-between items-center mb-8">
+                <div>
+                   <h1 className="text-3xl font-black text-slate-900 mb-2">My Registrations</h1>
+                   <p className="text-slate-500 font-medium">Manage your event participations.</p>
+                </div>
+                <button onClick={load} className="p-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 transition-colors">
+                   <RotateCw size={20}/>
+                </button>
+             </div>
 
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", my: 5 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>Event</strong></TableCell>
-                  <TableCell><strong>Dates</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  <TableCell><strong>Registered At</strong></TableCell>
-                  <TableCell align="right"><strong>Actions</strong></TableCell>
-                </TableRow>
-              </TableHead>
+             {loading ? (
+                <div className="text-center py-12 text-slate-400">Loading...</div>
+             ) : rows.length === 0 ? (
+                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 grayscale opacity-50 text-2xl">🎟️</div>
+                   <h3 className="text-lg font-bold text-slate-700">No registrations yet</h3>
+                   <button onClick={() => navigate('/events')} className="mt-4 text-indigo-600 font-bold hover:underline">Browse Events</button>
+                </div>
+             ) : (
+                <div className="overflow-x-auto">
+                   <table className="w-full text-left border-collapse">
+                      <thead>
+                         <tr className="bg-slate-50 border-b border-slate-200">
+                            <th className="p-4 text-xs font-bold uppercase text-slate-500">Event</th>
+                            <th className="p-4 text-xs font-bold uppercase text-slate-500">Dates</th>
+                            <th className="p-4 text-xs font-bold uppercase text-slate-500">Status</th>
+                            <th className="p-4 text-xs font-bold uppercase text-slate-500">Registered</th>
+                            <th className="p-4 text-xs font-bold uppercase text-slate-500 text-right">Actions</th>
+                         </tr>
+                      </thead>
+                      <tbody>
+                         {rows.map((r) => (
+                            <tr key={r.eventId} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                               <td className="p-4">
+                                  <div className="font-bold text-slate-900">{r.title}</div>
+                                  <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">{r.category}</div>
+                               </td>
+                               <td className="p-4 text-sm font-medium text-slate-600">
+                                  <div className="flex items-center gap-2"><Calendar size={14}/> {fmt(r.startDate)}</div>
+                               </td>
+                               <td className="p-4">
+                                  {renderStatus(r)}
+                               </td>
+                               <td className="p-4 text-sm text-slate-500">
+                                  {fmt(r.registeredAt)}
+                               </td>
+                               <td className="p-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                     <button onClick={() => navigate(`/events/${r.eventId}`)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-colors">
+                                        View
+                                     </button>
+                                     {r.submissionStatus === "not_submitted" && (
+                                        <button onClick={() => navigate(`/events/submit/${r.eventId}`)} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold text-white transition-colors flex items-center gap-1">
+                                           <Trophy size={12}/> Submit
+                                        </button>
+                                     )}
+                                  </div>
+                               </td>
+                            </tr>
+                         ))}
+                      </tbody>
+                   </table>
+                </div>
+             )}
+          </div>
 
-              <TableBody>
-                {(rows || []).map((r, idx) => (
-                  <motion.tr
-                    key={r.eventId}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                  >
-                    {/* Event Title */}
-                    <TableCell>{r.title || "—"}</TableCell>
-
-                    {/* Dates */}
-                    <TableCell>
-                      {fmt(r.startDate)} – {fmt(r.endDate)}
-                    </TableCell>
-
-                    {/* Submission Status */}
-                    <TableCell>{renderStatus(r)}</TableCell>
-
-                    {/* Registered At */}
-                    <TableCell>{fmt(r.registeredAt)}</TableCell>
-
-                    {/* Action Buttons */}
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        {/* Open Event */}
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => navigate(`/events/${r.eventId}`)}
-                        >
-                          Open
-                        </Button>
-
-                        {/* Submit Entry */}
-                        {r.submissionStatus === "not_submitted" && (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() =>
-                              navigate(`/events/submit/${r.eventId}`)
-                            }
-                          >
-                            Submit Entry
-                          </Button>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </motion.tr>
-                ))}
-
-                {rows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      <Typography sx={{ py: 3 }} color="text.secondary">
-                        You haven’t registered for any events yet.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </Paper>
-      </Container>
-    </motion.div>
+       </div>
+    </div>
   );
 }

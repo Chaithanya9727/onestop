@@ -1,20 +1,9 @@
-// src/pages/AdminMentorApprovals.jsx
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Stack,
-  CircularProgress,
-  Divider,
-} from "@mui/material";
-import useApi from "../hooks/useApi";
 import { motion } from "framer-motion";
+import useApi from "../hooks/useApi";
 import { useToast } from "../components/ToastProvider";
 import { useAuth } from "../context/AuthContext";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, GraduationCap, Loader, Mail } from "lucide-react";
 
 export default function AdminMentorApprovals() {
   const { role } = useAuth();
@@ -25,196 +14,112 @@ export default function AdminMentorApprovals() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
 
-  // 🚫 Restrict non-admin access
-  if (role !== "admin" && role !== "superadmin") {
-    return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "linear-gradient(135deg, #1e1e2f, #292946)",
-          color: "#fff",
-        }}
-      >
-        <Typography variant="h6" color="error">
-          ❌ Access Denied — Admins Only
-        </Typography>
-      </Box>
-    );
-  }
+  useEffect(() => {
+    loadRequests();
+  }, []);
 
-  // 🧠 Load pending mentor requests
   const loadRequests = async () => {
     setLoading(true);
     try {
       const data = await get("/mentor/requests");
       setRequests(data.requests || []);
     } catch (err) {
-      console.error("Error fetching mentor requests:", err);
-      showToast("Failed to fetch mentor requests ❌", "error");
+      console.error(err);
+      showToast("Failed to fetch mentor requests", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  // ⚙️ Approve or Reject Mentor Application
   const handleAction = async (id, actionType) => {
     try {
       setActionLoading(id);
-      const res = await put(`/mentor/${actionType}/${id}`); // ✅ Corrected API call
-      showToast(res.message || `Mentor ${actionType}d successfully ✅`, "success");
-      await loadRequests();
+      await put(`/mentor/${actionType}/${id}`);
+      showToast(`Mentor ${actionType}d successfully`, "success");
+      loadRequests();
     } catch (err) {
-      console.error(`Error performing ${actionType} action:`, err);
-      showToast(`Failed to ${actionType} mentor ❌`, "error");
+      console.error(err);
+      showToast(`Failed to ${actionType} mentor`, "error");
     } finally {
       setActionLoading(null);
     }
   };
 
-  // 🌀 Loading Spinner
-  if (loading)
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 12 }}>
-        <CircularProgress sx={{ color: "#6c63ff" }} />
-      </Box>
-    );
+  if (loading) return <div className="flex justify-center items-center h-screen"><Loader className="animate-spin text-blue-600" size={32} /></div>;
+
+  if (role !== "admin" && role !== "superadmin") {
+     return <div className="text-center py-20 text-red-500 font-bold">Access Denied</div>;
+  }
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 4 },
-        color: "#fff",
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #1e1e2f, #292946)",
-      }}
+    <motion.div
+      initial={{ opacity: 0, y: 25 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-5xl mx-auto p-6 pb-20"
     >
-      <Typography
-        variant="h4"
-        fontWeight={700}
-        sx={{
-          mb: 3,
-          textAlign: { xs: "center", md: "left" },
-        }}
-      >
-        👩‍🏫 Mentor Approval Requests
-      </Typography>
+      <div className="mb-8">
+         <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+            <span className="p-2.5 bg-violet-50 text-violet-600 rounded-xl"><GraduationCap size={28} /></span>
+            Mentor Approvals
+         </h1>
+         <p className="text-slate-500 font-medium mt-2 ml-1">Review applications from aspiring mentors.</p>
+      </div>
 
       {requests.length === 0 ? (
-        <Typography
-          sx={{
-            textAlign: "center",
-            mt: 12,
-            color: "rgba(255,255,255,0.7)",
-            fontSize: "1.1rem",
-          }}
-        >
-          🎉 No pending mentor applications — all caught up!
-        </Typography>
+         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+            <p className="text-slate-400 font-bold text-lg">No pending mentor applications.</p>
+         </div>
       ) : (
-        <Stack spacing={3}>
-          {requests.map((req) => (
-            <motion.div
-              key={req._id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 250, damping: 15 }}
-            >
-              <Card
-                sx={{
-                  background: "rgba(255,255,255,0.08)",
-                  borderRadius: "18px",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  color: "#fff",
-                  overflow: "hidden",
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600}>
-                    {req.name || "Unnamed User"}
-                  </Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.8)" }}>
-                    {req.email || "No email"}
-                  </Typography>
+         <div className="space-y-4">
+            {requests.map((req) => (
+               <div key={req._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow">
+                  <div className="flex-1">
+                     <div className="flex items-center justify-between mb-4">
+                        <div>
+                           <h3 className="text-xl font-bold text-slate-800">{req.name || "Unnamed User"}</h3>
+                           <p className="text-slate-500 text-sm font-medium flex items-center gap-1"><Mail size={14} /> {req.email}</p>
+                        </div>
+                        <div className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wide border border-amber-100">
+                           Pending Review
+                        </div>
+                     </div>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl mb-4">
+                        <div>
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Expertise</p>
+                           <p className="font-semibold text-slate-700">{req.mentorProfile?.expertise || "—"}</p>
+                        </div>
+                        <div>
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Experience</p>
+                           <p className="font-semibold text-slate-700">{req.mentorProfile?.experience || "0"} years</p>
+                        </div>
+                        <div className="md:col-span-2">
+                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Bio</p>
+                           <p className="text-sm font-medium text-slate-600 leading-relaxed italic">"{req.mentorProfile?.bio || "No bio provided"}"</p>
+                        </div>
+                     </div>
+                  </div>
 
-                  <Divider
-                    sx={{ my: 1.5, borderColor: "rgba(255,255,255,0.2)" }}
-                  />
-
-                  <Typography>
-                    <b>Expertise:</b> {req.mentorProfile?.expertise || "—"}
-                  </Typography>
-                  <Typography>
-                    <b>Experience:</b> {req.mentorProfile?.experience || "0"} years
-                  </Typography>
-                  <Typography sx={{ mb: 2 }}>
-                    <b>Bio:</b>{" "}
-                    {req.mentorProfile?.bio
-                      ? req.mentorProfile.bio
-                      : "No bio provided"}
-                  </Typography>
-
-                  <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={2}
-                    sx={{ mt: 2 }}
-                  >
-                    <Button
-                      variant="contained"
-                      color="success"
-                      startIcon={<CheckCircle size={18} />}
-                      disabled={actionLoading === req._id}
-                      onClick={() => handleAction(req._id, "approve")}
-                      sx={{
-                        textTransform: "none",
-                        fontWeight: 600,
-                        borderRadius: "25px",
-                        flex: 1,
-                        py: 1.2,
-                        background: "linear-gradient(135deg, #4caf50, #66bb6a)",
-                      }}
-                    >
-                      {actionLoading === req._id
-                        ? "Approving..."
-                        : "Approve Mentor"}
-                    </Button>
-
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<XCircle size={18} />}
-                      disabled={actionLoading === req._id}
-                      onClick={() => handleAction(req._id, "reject")}
-                      sx={{
-                        textTransform: "none",
-                        fontWeight: 600,
-                        borderRadius: "25px",
-                        flex: 1,
-                        py: 1.2,
-                        borderColor: "rgba(244,67,54,0.6)",
-                        color: "#ef5350",
-                        "&:hover": {
-                          borderColor: "#ef5350",
-                          background: "rgba(244,67,54,0.1)",
-                        },
-                      }}
-                    >
-                      {actionLoading === req._id ? "Rejecting..." : "Reject"}
-                    </Button>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </Stack>
+                  <div className="flex flex-row md:flex-col justify-center gap-3 shrink-0">
+                     <button 
+                        onClick={() => handleAction(req._id, "approve")}
+                        disabled={actionLoading === req._id}
+                        className="px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                     >
+                        {actionLoading === req._id ? <Loader className="animate-spin" size={18} /> : <CheckCircle size={18} />} Approve
+                     </button>
+                     <button 
+                        onClick={() => handleAction(req._id, "reject")}
+                        disabled={actionLoading === req._id}
+                        className="px-6 py-3 bg-white text-red-600 border-2 border-red-50 font-bold rounded-xl hover:bg-red-50 hover:border-red-100 transition-colors flex items-center justify-center gap-2"
+                     >
+                        {actionLoading === req._id ? <Loader className="animate-spin" size={18} /> : <XCircle size={18} />} Reject
+                     </button>
+                  </div>
+               </div>
+            ))}
+         </div>
       )}
-    </Box>
+    </motion.div>
   );
 }

@@ -104,7 +104,7 @@ export default function RecruiterSidebar({
       </List>
 
       <Box sx={{ p: 2, fontSize: 12, color: "text.secondary" }}>
-        © {new Date().getFullYear()} OneStop Hub
+        © {new Date().getFullYear()} OneStop
       </Box>
     </Box>
   );

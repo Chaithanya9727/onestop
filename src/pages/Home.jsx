@@ -1,300 +1,366 @@
-import { useEffect, useRef, useState } from "react";
-import { Box, Typography, Button, Stack, IconButton } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { PlayArrow, Pause, VolumeUp, VolumeOff } from "@mui/icons-material";
+/* eslint-disable react/no-unescaped-entities */
+import React, { useRef, useState } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Trophy, Briefcase, Users, Code2, Shield, Zap, 
+  Rocket, Terminal, Brain, GraduationCap, Globe, 
+  CheckCircle2, ArrowRight, Sparkles, Target, 
+  ChevronRight, Play
+} from 'lucide-react';
+import { TracingBeam } from '../components/ui/TracingBeam';
 
-export default function Home() {
-  const navigate = useNavigate();
-  const lightRef = useRef(null);
-  const flareRef = useRef(null);
-  const videoRef = useRef(null);
-  const welcomeAudioRef = useRef(null);
-  const glowRef = useRef(null);
+// --- SHARED UI COMPONENTS ---
 
-  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  // ✅ Welcome sound + cinematic glow
-  useEffect(() => {
-    const audio = new Audio("/sounds/welcome.mp3");
-    audio.volume = 0.35;
-    welcomeAudioRef.current = audio;
-
-    const triggerGlow = () => {
-      if (!glowRef.current) return;
-      glowRef.current.style.opacity = "1";
-      glowRef.current.style.transform = "scale(1.3)";
-      setTimeout(() => {
-        glowRef.current.style.opacity = "0";
-        glowRef.current.style.transform = "scale(1)";
-      }, 1200);
-    };
-
-    const tryPlay = async () => {
-      try {
-        await audio.play();
-        triggerGlow();
-      } catch {
-        const playOnUserAction = async () => {
-          try {
-            await audio.play();
-            triggerGlow();
-            document.removeEventListener("click", playOnUserAction);
-            document.removeEventListener("touchstart", playOnUserAction);
-          } catch (err) {
-            console.error("Still blocked:", err);
-          }
-        };
-        document.addEventListener("click", playOnUserAction, { once: true });
-        document.addEventListener("touchstart", playOnUserAction, { once: true });
-      }
-    };
-
-    tryPlay();
-    return () => {
-      audio.pause();
-      audio.currentTime = 0;
-    };
-  }, []);
-
-  // 🌀 Parallax + Glow + Lens Flare + Video Motion
-  useEffect(() => {
-    const onMove = (e) => {
-      const clientX = e.clientX || (e.touches && e.touches[0]?.clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0]?.clientY);
-      if (clientX == null || clientY == null) return;
-
-      setMousePosition({ x: clientX, y: clientY });
-
-      const px = (clientX / window.innerWidth - 0.5) * 40;
-      const py = (clientY / window.innerHeight - 0.5) * 40;
-
-      if (lightRef.current) {
-        lightRef.current.style.left = `${clientX}px`;
-        lightRef.current.style.top = `${clientY}px`;
-      }
-
-      if (flareRef.current) {
-        const offsetX = (clientX / window.innerWidth - 0.5) * 60;
-        const offsetY = (clientY / window.innerHeight - 0.5) * 30;
-        flareRef.current.style.transform = `translate(${offsetX}px, ${offsetY}px) rotate(${offsetX / 5}deg)`;
-      }
-
-      if (videoRef.current) {
-        const rotateY = (clientX / window.innerWidth - 0.5) * 2;
-        const rotateX = -(clientY / window.innerHeight - 0.5) * 2;
-        videoRef.current.style.transform = `
-          translate(${px / 8}px, ${py / 8}px)
-          scale(1.05)
-          rotateY(${rotateY}deg)
-          rotateX(${rotateX}deg)
-        `;
-      }
-    };
-
-    window.addEventListener("mousemove", onMove, { passive: true });
-    window.addEventListener("touchmove", onMove, { passive: true });
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onMove);
-    };
-  }, []);
-
-  const toggleVideoPlayback = () => {
-    if (!videoRef.current) return;
-    isVideoPlaying ? videoRef.current.pause() : videoRef.current.play();
-    setIsVideoPlaying(!isVideoPlaying);
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    const newMuteState = !isMuted;
-    videoRef.current.muted = newMuteState;
-    if (welcomeAudioRef.current) {
-      welcomeAudioRef.current.muted = newMuteState;
-    }
-    setIsMuted(newMuteState);
-  };
-
-  return (
-    <Box
-      sx={{
-        position: "relative",
-        height: "100vh",
-        width: "100%",
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "white",
-        textAlign: "center",
-        backgroundColor: "#000",
-        perspective: "1000px",
-      }}
+const SectionHeaders = ({ title, subtitle, center = true }) => (
+  <div className={`mb-16 ${center ? 'text-center' : 'text-left'}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-sm font-bold tracking-wide uppercase mb-4"
     >
-      {/* 🎬 Background Video */}
-      <video
-        ref={videoRef}
-        autoPlay
-        loop
-        muted={isMuted}
-        playsInline
-        preload="auto"
-        style={{
-          position: "absolute",
-          top: "-10%",
-          left: "-10%",
-          width: "120%",
-          height: "120%",
-          objectFit: "cover",
-          zIndex: -3,
-          opacity: 0,
-          transition: "all 0.8s cubic-bezier(0.23, 1, 0.32, 1)",
-          filter: "brightness(0.7) contrast(1.2) saturate(1.3)",
-        }}
-      >
-        <source src="/Home.mp4" type="video/mp4" />
-      </video>
+      <Sparkles size={14} />
+      {subtitle}
+    </motion.div>
+    <motion.h2 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.1 }}
+      className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white leading-tight tracking-tight"
+    >
+      {title}
+    </motion.h2>
+  </div>
+);
 
-      {/* ✨ Glow */}
-      <div ref={glowRef} style={{
-        position: "absolute", inset: 0, zIndex: -1,
-        background: "radial-gradient(circle at center, rgba(108,99,255,0.25), rgba(255,51,102,0.15), transparent 80%)",
-        filter: "blur(80px)", opacity: 0, transform: "scale(1)",
-        transition: "all 1s ease-out", pointerEvents: "none"
-      }} />
+const BentoCard = ({ children, className, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    whileInView={{ opacity: 1, scale: 1 }}
+    viewport={{ once: true }}
+    transition={{ delay, duration: 0.5 }}
+    whileHover={{ y: -5 }}
+    className={`bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden ${className}`}
+  >
+    {children}
+  </motion.div>
+);
 
-      {/* 🎮 Video Controls */}
-      <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10, display: "flex", gap: 1 }}>
-        <IconButton onClick={toggleVideoPlayback} sx={controlStyle}>
-          {isVideoPlaying ? <Pause /> : <PlayArrow />}
-        </IconButton>
-        <IconButton onClick={toggleMute} sx={controlStyle}>
-          {isMuted ? <VolumeOff /> : <VolumeUp />}
-        </IconButton>
-      </Box>
+// --- SECTIONS ---
 
-      {/* 💎 Hero Section */}
-      <Box sx={{
-        position: "relative", textAlign: "center", zIndex: 2, maxWidth: 900,
-        width: "90%", mx: "auto", animation: "glassAppear 1.2s cubic-bezier(0.23, 1, 0.32, 1)"
-      }}>
-        <Typography
-          variant="h1"
-          fontWeight="900"
-          sx={{
-            mb: 3,
-            fontSize: { xs: "2.5rem", sm: "3.5rem", md: "4.5rem" },
-            background: "linear-gradient(135deg,#FFFFFF,#A8F7FF,#8CE3FF,#CBE8FF,#FFFFFF)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            textShadow: "0 0 60px rgba(168,247,255,0.6)",
-          }}
+const Hero = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+      {/* Background with Video/Overlay */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50/90 via-slate-50/80 to-slate-50 dark:from-slate-950/90 dark:via-slate-950/80 dark:to-slate-950 z-10" />
+         <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="w-full h-full object-cover opacity-30 dark:opacity-20"
         >
-          OneStop Hub
-        </Typography>
+          <source src="./compass.mp4" type="video/mp4" />
+        </video>
+      </div>
 
-        <Typography
-          variant="h5"
-          sx={{
-            mb: 6, color: "rgba(255,255,255,0.9)", fontWeight: 300,
-            maxWidth: 700, mx: "auto", lineHeight: 1.7,
-            textShadow: "0 0 20px rgba(0,255,255,0.3)", backdropFilter: "blur(8px)",
-          }}
+      <div className="relative z-20 max-w-7xl mx-auto px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 backdrop-blur-md mb-8 shadow-sm"
         >
-          Experience the future of campus life with our immersive digital ecosystem.
-          Connecting candidates, mentors, and administrators through cutting-edge technology and elegant design.
-        </Typography>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+            Over 100k+ Developers Hired
+          </span>
+        </motion.div>
 
-        {/* 🌈 Action Buttons */}
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="center" spacing={3}>
-          <AdvancedGlassButton
-            label="Login"
-            onClick={() => navigate("/login")}
-            gradient="linear-gradient(135deg, #00c6ff, #0072ff)"
-            glowColor="rgba(0,150,255,0.8)"
-          />
-          <AdvancedGlassButton
-            label="Signup"
-            onClick={() => navigate("/register")}
-            gradient="linear-gradient(135deg, #f093fb, #f5576c)"
-            glowColor="rgba(255,100,150,0.8)"
-          />
-          <AdvancedGlassButton
-            label="Explore Campus"
-            onClick={() => navigate("/contact")}
-            gradient="linear-gradient(135deg, #43e97b, #38f9d7)"
-            glowColor="rgba(100,255,200,0.8)"
-          />
-        </Stack>
-      </Box>
-    </Box>
+        <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-slate-900 dark:text-white mb-8 leading-[0.9]">
+          Dream.<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+            Build.
+          </span>{' '}
+          Achieve.
+        </h1>
+
+        <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
+          The all-in-one ecosystem for developers. From learning your first line of code to landing your dream job at a FAANG company.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/events')}
+            className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-lg flex items-center gap-2 shadow-xl shadow-indigo-500/20"
+          >
+            Start Competing <ArrowRight size={20} />
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/mentors')}
+            className="px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-2xl font-bold text-lg flex items-center gap-2 hover:bg-slate-50 transition-colors"
+          >
+            Find a Mentor
+          </motion.button>
+        </div>
+      </div>
+    </section>
   );
-}
-
-/* 🪄 Video control style */
-const controlStyle = {
-  color: "white",
-  background: "rgba(255,255,255,0.1)",
-  backdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.2)",
-  "&:hover": { background: "rgba(255,255,255,0.2)", transform: "scale(1.1)" },
 };
 
-/* ⚡ Glass Button Component */
-function AdvancedGlassButton({ label, onClick, glowColor, gradient }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <Button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      variant="text"
-      disableRipple
-      sx={{
-        position: "relative",
-        overflow: "hidden",
-        px: 6,
-        py: 2.2,
-        fontSize: "1.1rem",
-        fontWeight: 700,
-        borderRadius: "35px",
-        textTransform: "none",
-        color: "rgba(255,255,255,0.95)",
-        letterSpacing: "0.8px",
-        transition: "all 0.5s cubic-bezier(0.23, 1, 0.32, 1)",
-        background: "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))",
-        border: "1.5px solid rgba(255,255,255,0.25)",
-        backdropFilter: "blur(25px) saturate(180%)",
-        boxShadow: `
-          inset 0 0 25px rgba(255,255,255,0.1),
-          0 8px 40px rgba(0,0,0,0.2),
-          0 0 0 1px rgba(255,255,255,0.1)
-        `,
-        transform: hovered ? "translateY(-4px) scale(1.05)" : "translateY(0)",
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          borderRadius: "35px",
-          padding: "2px",
-          background: gradient,
-          opacity: hovered ? 1 : 0,
-          filter: `blur(${hovered ? 15 : 0}px)`,
-          transition: "all 0.4s cubic-bezier(0.23, 1, 0.32, 1)",
+const EcosystemGrid = () => {
+    const navigate = useNavigate();
+
+    return (
+        <section className="py-24 px-6 md:px-10 max-w-7xl mx-auto">
+            <SectionHeaders 
+                subtitle="The Platform" 
+                title="Everything you need to succeed." 
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 grid-rows-auto gap-6 h-auto">
+                
+                {/* 1. COMPETE (Large) */}
+                <BentoCard className="md:col-span-2 md:row-span-2 min-h-[400px] relative group cursor-pointer" onClick={() => navigate('/events')}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-700 opacity-90 transition-opacity group-hover:opacity-100" />
+                    <img 
+                      src="https://images.unsplash.com/photo-1504384308090-c54be3852d33?auto=format&fit=crop&q=80" 
+                      alt="Hackathon"
+                      className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50 group-hover:scale-105 transition-transform duration-700" 
+                    />
+                    <div className="relative z-10 p-8 h-full flex flex-col justify-between">
+                        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-4">
+                            <Trophy size={28} />
+                        </div>
+                        <div>
+                            <h3 className="text-3xl font-black text-white mb-2">Compete & Win</h3>
+                            <p className="text-indigo-100 font-medium text-lg leading-relaxed">
+                                Join global hackathons, coding contests, and algorithm battles. Win cash prizes and recognition.
+                            </p>
+                            <div className="mt-6 flex gap-2">
+                                <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold text-white uppercase tracking-wider">Live Now &rarr;</span>
+                            </div>
+                        </div>
+                    </div>
+                </BentoCard>
+
+                {/* 2. JOBS (Tall) */}
+                <BentoCard className="md:col-span-1 md:row-span-2 min-h-[400px] bg-slate-100 dark:bg-slate-800 relative group cursor-pointer" onClick={() => navigate('/jobs')}>
+                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                     <div className="p-8 h-full flex flex-col">
+                        <div className="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/30">
+                            <Briefcase size={24} />
+                        </div>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Direct Hiring</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8 flex-grow">
+                            Apply to 500+ top companies with a single profile. No spam, just interviews.
+                        </p>
+                        
+                        {/* Decorative Resume List */}
+                        <div className="space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-white/5">
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800" />
+                                    <div className="h-2 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+                                    <div className="ml-auto text-green-500 text-xs font-bold">Matched</div>
+                                </div>
+                            ))}
+                        </div>
+                     </div>
+                </BentoCard>
+
+                {/* 3. MENTORSHIP (Standard) */}
+                <BentoCard className="min-h-[200px] cursor-pointer group" onClick={() => navigate('/mentors')}>
+                    <div className="p-6 h-full flex flex-col justify-between hover:bg-orange-50 dark:hover:bg-white/5 transition-colors">
+                        <div className="flex justify-between items-start">
+                             <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                                <Users size={20} />
+                            </div>
+                            <ArrowRight className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Mentorship</h3>
+                            <p className="text-sm text-slate-500">1:1 with FAANG engineers.</p>
+                        </div>
+                    </div>
+                </BentoCard>
+
+                 {/* 4. LEARNING (Standard) */}
+                 <BentoCard className="min-h-[200px] cursor-pointer group" onClick={() => navigate('/resources')}>
+                    <div className="p-6 h-full flex flex-col justify-between hover:bg-green-50 dark:hover:bg-white/5 transition-colors">
+                        <div className="flex justify-between items-start">
+                             <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 flex items-center justify-center">
+                                <GraduationCap size={20} />
+                            </div>
+                            <ArrowRight className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Learning Paths</h3>
+                            <p className="text-sm text-slate-500">Structured roadmaps.</p>
+                        </div>
+                    </div>
+                </BentoCard>
+
+                 {/* 5. RESUME SHIELD (Wide) */}
+                 <BentoCard className="md:col-span-2 cursor-pointer group relative overflow-hidden" onClick={() => navigate('/resume-shield')}>
+                    <div className="absolute inset-0 bg-slate-900" />
+                    <div className="relative z-10 p-8 flex items-center justify-between">
+                         <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Shield className="text-indigo-400" size={24} />
+                                <span className="text-indigo-400 font-bold uppercase tracking-wider text-xs">AI Powered</span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">Resume Shield</h3>
+                            <p className="text-slate-400 max-w-xs">Score your resume against millions of job descriptions.</p>
+                         </div>
+                         <div className="hidden sm:flex">
+                             <div className="text-5xl font-black text-green-400">98<span className="text-2xl">%</span></div>
+                         </div>
+                    </div>
+                </BentoCard>
+
+                 {/* 6. COMMUNITY (Wide) */}
+                 <BentoCard className="md:col-span-2 cursor-pointer group bg-gradient-to-r from-pink-500 to-rose-500" onClick={() => navigate('/community')}>
+                    <div className="p-8 flex items-center gap-6 text-white h-full relative overflow-hidden">
+                        <Globe className="w-32 h-32 absolute -right-6 -bottom-6 opacity-20 rotate-12" />
+                        <div className="relative z-10">
+                            <h3 className="text-2xl font-bold mb-2">Join the Community</h3>
+                            <p className="text-pink-100">Connect with 100k+ developers worldwide on Discord.</p>
+                        </div>
+                    </div>
+                </BentoCard>
+
+            </div>
+        </section>
+    );
+};
+
+// --- JOURNEY SECTION using TracingBeam ---
+
+const Journey = () => {
+    const steps = [
+        {
+            title: "Build Your Foundation",
+            desc: "Start with our curated Learning Paths. Whether you want to master React, explore System Design, or dive into AI, we have a roadmap for you.",
+            icon: <Brain />,
+            img: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop"
         },
-        "&:hover": {
-          color: "#fff",
-          boxShadow: `
-            inset 0 0 30px rgba(255,255,255,0.2),
-            0 12px 50px rgba(0,0,0,0.3),
-            0 0 40px ${glowColor}
-          `,
+        {
+            title: "Prove Your Skills",
+            desc: "Theory is not enough. Enter the Arena. Compete in daily challenges and global Hackathons to earn badges and climb the leaderboard.",
+            icon: <Code2 />,
+            img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop"
         },
-      }}
-    >
-      {label}
-    </Button>
-  );
+        {
+            title: "Connect with Experts",
+            desc: "Stuck on a bug? Need career advice? Book a 1:1 session with mentors from top tech companies who have been in your shoes.",
+            icon: <Users />,
+            img: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop"
+        },
+        {
+            title: "Get Hired",
+            desc: "Your profile acts as your dynamic resume. Recruiters can see your code, your wins, and your growth. Apply with one click.",
+            icon: <Rocket />,
+            img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop"
+        },
+    ];
+
+    return (
+        <section className="py-24 bg-slate-50 dark:bg-slate-950/50">
+            <div className="max-w-7xl mx-auto px-6">
+                <SectionHeaders 
+                    subtitle="Your Journey" 
+                    title="From Hello World to Offer Letter." 
+                />
+                
+                <TracingBeam className="px-6">
+                    <div className="flex flex-col gap-24 relative pt-10">
+                        {steps.map((step, idx) => (
+                             <div key={idx} className="relative pl-8 md:pl-12 group">
+                                {/* Dot on timeline */}
+                                <div className="absolute left-[3px] md:left-[3px] top-0 w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-400 dark:border-slate-600 group-hover:border-indigo-500 group-hover:bg-indigo-500 transition-colors z-20" />
+                                
+                                <div className="grid md:grid-cols-2 gap-10 items-center">
+                                    <div className="order-2 md:order-1">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-6">
+                                            {step.icon}
+                                        </div>
+                                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                                            <span className="text-indigo-500 mr-2">0{idx + 1}.</span> {step.title}
+                                        </h3>
+                                        <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                                            {step.desc}
+                                        </p>
+                                    </div>
+                                    <div className="order-1 md:order-2 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg">
+                                        <img src={step.img} alt={step.title} className="w-full h-64 object-cover transform group-hover:scale-105 transition-transform duration-700" />
+                                    </div>
+                                </div>
+                             </div>
+                        ))}
+                    </div>
+                </TracingBeam>
+            </div>
+        </section>
+    );
+};
+
+const CTA = () => {
+    const navigate = useNavigate();
+
+    return (
+        <section className="py-32 px-6">
+            <div className="max-w-6xl mx-auto relative rounded-[3rem] overflow-hidden bg-slate-900 border border-slate-800">
+                
+                {/* Background Grid */}
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
+                
+                <div className="absolute -left-20 -top-20 w-96 h-96 bg-indigo-500/30 rounded-full blur-[100px]"></div>
+                <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-purple-500/30 rounded-full blur-[100px]"></div>
+
+                <div className="relative z-10 flex flex-col items-center text-center p-12 md:p-24">
+                     <h2 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight">
+                        Ready to level up?
+                     </h2>
+                     <p className="text-xl text-slate-300 max-w-2xl mb-12">
+                        Join 100,000+ developers building the future. Your career acceleration starts today.
+                     </p>
+                     
+                     <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                        <button onClick={() => navigate('/register')} className="px-8 py-4 bg-white text-slate-900 rounded-xl font-bold text-lg hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                             Get Started Free <Rocket className="text-indigo-600" size={20} />
+                        </button>
+                        <button onClick={() => navigate('/events')} className="px-8 py-4 bg-transparent border border-white/20 text-white rounded-xl font-bold text-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                             Explore Hackathons
+                        </button>
+                     </div>
+                </div>
+            </div>
+        </section>
+    )
+}
+
+// --- MAIN PAGE ---
+
+export default function Home() {
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-[#050505] overflow-x-hidden selection:bg-indigo-500/30">
+            <Hero />
+            <EcosystemGrid />
+            <Journey />
+            <CTA />
+        </div>
+    );
 }

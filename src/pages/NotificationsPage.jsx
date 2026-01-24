@@ -1,37 +1,18 @@
 import React, { useEffect, useState, useMemo } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  IconButton,
-  Chip,
-  Stack,
-  CircularProgress,
-  Divider,
-  Tooltip,
-  Button,
-} from "@mui/material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSocket } from "../socket.jsx";
 import useApi from "../hooks/useApi";
-import DoneAllIcon from "@mui/icons-material/DoneAll";
-import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import CampaignIcon from "@mui/icons-material/Campaign";
-import WorkIcon from "@mui/icons-material/Work";
-import PersonIcon from "@mui/icons-material/Person";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
+import { 
+  Bell, Check, RefreshCw, Briefcase, User, Shield, FileText, Settings, CheckCircle, Loader 
+} from "lucide-react";
 
 export default function NotificationsPage() {
   const { get, patch } = useApi();
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  // Fetch from API
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -45,7 +26,6 @@ export default function NotificationsPage() {
     }
   };
 
-  // Mark all as read (bulk endpoint)
   const markAllRead = async () => {
     try {
       await patch("/notifications/mark-all/read");
@@ -55,10 +35,8 @@ export default function NotificationsPage() {
     }
   };
 
-  // Mark one as read
   const markOneRead = async (id) => {
     try {
-      // Fallback: mark individually if you also have /:id/read
       await patch(`/notifications/${id}/read`).catch(() => Promise.resolve());
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, read: true } : n))
@@ -72,7 +50,6 @@ export default function NotificationsPage() {
     fetchNotifications();
   }, []);
 
-  // Realtime socket listener
   useEffect(() => {
     if (socket) {
       const handler = (data) => {
@@ -83,12 +60,13 @@ export default function NotificationsPage() {
             message: data?.message || "",
             read: false,
             createdAt: data?.time || new Date().toISOString(),
+            type: 'system' // Default type if not provided
           },
           ...prev,
         ]);
       };
-      socket.on("notification", handler);
-      return () => socket.off("notification", handler);
+      socket.on("notification:new", handler);
+      return () => socket.off("notification:new", handler);
     }
   }, [socket]);
 
@@ -100,170 +78,102 @@ export default function NotificationsPage() {
 
   const getIcon = (type) => {
     switch (type) {
-      case "admin":
-        return <AdminPanelSettingsIcon color="primary" />;
-      case "recruiter":
-        return <WorkIcon color="success" />;
-      case "candidate":
-        return <PersonIcon color="info" />;
-      case "job":
-        return <CampaignIcon color="secondary" />;
-      default:
-        return <SystemUpdateAltIcon color="action" />;
+      case "admin": return <Shield className="text-purple-500" />;
+      case "recruiter": return <Briefcase className="text-blue-500" />;
+      case "candidate": return <User className="text-green-500" />;
+      case "job": return <FileText className="text-amber-500" />;
+      default: return <Settings className="text-slate-400" />;
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 25 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
-        <Typography
-          variant="h5"
-          fontWeight={800}
-          mb={3}
-          sx={{
-            background: "linear-gradient(90deg, #6c63ff, #ff4081)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          🔔 Notifications Center
-        </Typography>
+    <div className="max-w-4xl mx-auto p-6 md:p-10 pb-20">
+       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          
+          {/* Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+             <div>
+                <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+                   <span className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><Bell size={28} /></span>
+                   Notifications
+                </h1>
+                <p className="text-slate-500 font-medium mt-2 ml-1">Stay updated with latest activities.</p>
+             </div>
+             
+             <div className="flex gap-2">
+                <button 
+                   onClick={fetchNotifications} 
+                   className="p-2 bg-white text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+                   title="Refresh"
+                >
+                   <RefreshCw size={20} />
+                </button>
+                <button 
+                   onClick={markAllRead} 
+                   className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold rounded-xl hover:bg-indigo-100 transition-colors flex items-center gap-2"
+                >
+                   <CheckCircle size={18} /> Mark all read
+                </button>
+             </div>
+          </div>
 
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          justifyContent="space-between"
-          spacing={2}
-          mb={3}
-        >
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Chip
-              label="All"
-              color={filter === "all" ? "primary" : "default"}
-              onClick={() => setFilter("all")}
-              sx={{ cursor: "pointer", fontWeight: 600 }}
-            />
-            <Chip
-              label="Unread"
-              color={filter === "unread" ? "secondary" : "default"}
-              onClick={() => setFilter("unread")}
-              sx={{ cursor: "pointer", fontWeight: 600 }}
-            />
-            <Chip
-              label="Read"
-              color={filter === "read" ? "success" : "default"}
-              onClick={() => setFilter("read")}
-              sx={{ cursor: "pointer", fontWeight: 600 }}
-            />
-          </Stack>
+          {/* Filters */}
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit font-bold text-sm">
+             {['all', 'unread', 'read'].map((f) => (
+                <button
+                   key={f}
+                   onClick={() => setFilter(f)}
+                   className={`px-5 py-2 rounded-lg capitalize transition-all ${filter === f ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                   {f}
+                </button>
+             ))}
+          </div>
 
-          <Stack direction="row" spacing={1}>
-            <Tooltip title="Refresh">
-              <IconButton onClick={fetchNotifications}>
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Mark All as Read">
-              <IconButton onClick={markAllRead}>
-                <DoneAllIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        </Stack>
+          {/* List */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
+             {loading ? (
+                <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-indigo-600" size={32} /></div>
+             ) : filteredNotifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                   <Bell size={48} className="mb-4 opacity-20" />
+                   <p className="font-bold">No notifications found.</p>
+                </div>
+             ) : (
+                <div className="divide-y divide-slate-50">
+                   <AnimatePresence>
+                      {filteredNotifications.map((n) => (
+                         <motion.div
+                            key={n._id || Math.random()}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className={`p-6 flex gap-4 transition-colors ${n.read ? 'bg-white hover:bg-slate-50' : 'bg-indigo-50/40 hover:bg-indigo-50/70'}`}
+                         >
+                            <div className={`p-3 rounded-xl h-fit shrink-0 ${n.read ? 'bg-slate-50' : 'bg-white shadow-sm'}`}>
+                               {getIcon(n.type)}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                               <div className="flex justify-between items-start gap-4">
+                                  <h3 className={`font-bold text-lg mb-1 leading-tight ${n.read ? 'text-slate-700' : 'text-slate-900'}`}>{n.title}</h3>
+                                  {!n.read && (
+                                     <button onClick={() => markOneRead(n._id)} className="text-indigo-600 hover:text-indigo-800" title="Mark as read">
+                                        <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div>
+                                     </button>
+                                  )}
+                               </div>
+                               <p className="text-slate-600 text-sm leading-relaxed mb-2 whitespace-pre-line">{n.message}</p>
+                               <p className="text-xs font-bold text-slate-400">{new Date(n.createdAt).toLocaleString()}</p>
+                            </div>
+                         </motion.div>
+                      ))}
+                   </AnimatePresence>
+                </div>
+             )}
+          </div>
 
-        {loading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
-        ) : filteredNotifications.length === 0 ? (
-          <Typography
-            textAlign="center"
-            color="text.secondary"
-            mt={6}
-            fontSize="1.1rem"
-          >
-            No notifications found.
-          </Typography>
-        ) : (
-          <Paper
-            elevation={3}
-            sx={{
-              borderRadius: 3,
-              p: 2,
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,250,255,0.95))",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            {filteredNotifications.map((n) => (
-              <Box
-                key={n._id || Math.random()}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 2,
-                  mb: 1.5,
-                  borderRadius: 2,
-                  backgroundColor: n.read ? "#f5f6fa" : "#edf2ff",
-                  boxShadow: n.read
-                    ? "none"
-                    : "0 0 12px rgba(108,99,255,0.2)",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  {getIcon(n.type)}
-                  <Box>
-                    <Typography fontWeight={700}>{n.title}</Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ whiteSpace: "pre-line" }}
-                    >
-                      {n.message}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.disabled"
-                      sx={{ display: "block", mt: 0.5 }}
-                    >
-                      {new Date(n.createdAt).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                {!n.read && (
-                  <Tooltip title="Mark as Read">
-                    <IconButton
-                      color="primary"
-                      onClick={() => markOneRead(n._id)}
-                    >
-                      <MarkEmailReadIcon />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
-            ))}
-          </Paper>
-        )}
-
-        {!loading && notifications.length > 0 && (
-          <Box textAlign="center" mt={3}>
-            <Button
-              variant="outlined"
-              startIcon={<NotificationsActiveIcon />}
-              onClick={markAllRead}
-            >
-              Mark All as Read
-            </Button>
-          </Box>
-        )}
-      </Box>
-    </motion.div>
+       </motion.div>
+    </div>
   );
 }

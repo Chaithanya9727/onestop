@@ -1,30 +1,22 @@
-import { useEffect, useState } from "react";
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Stack,
-  Avatar,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  Divider,
-} from "@mui/material";
-import { CheckCircle, XCircle, Users } from "lucide-react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
+import { CheckCircle, XCircle, Users, Mail, Loader, Award } from "lucide-react";
+import { useToast } from "../components/ToastProvider";
 
 export default function AdminMentorPanel() {
   const { role } = useAuth();
   const { get, put } = useApi();
+  const { showToast } = useToast();
+  
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState({ open: false, type: "success", message: "" });
 
-  // ✅ Fetch all pending mentors
+  useEffect(() => {
+    loadMentors();
+  }, []);
+
   const loadMentors = async () => {
     setLoading(true);
     try {
@@ -32,188 +24,91 @@ export default function AdminMentorPanel() {
       setMentors(data);
     } catch (err) {
       console.error("Error fetching mentors:", err);
-      setToast({ open: true, type: "error", message: "Failed to fetch mentors" });
+      showToast("Failed to fetch mentors", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadMentors();
-  }, []);
-
-  // ✅ Approve mentor
-  const handleApprove = async (id) => {
+  const handleAction = async (id, action) => {
     try {
-      await put(`/users/mentors/${id}/approve`);
-      setToast({ open: true, type: "success", message: "Mentor approved successfully ✅" });
+      const endpoint = action === 'approve' ? `/users/mentors/${id}/approve` : `/users/mentors/${id}/reject`;
+      await put(endpoint);
+      showToast(`Mentor ${action}d successfully`, "success");
       loadMentors();
     } catch (err) {
-      setToast({ open: true, type: "error", message: "Error approving mentor" });
+      showToast(`Error ${action}ing mentor`, "error");
     }
   };
 
-  // ✅ Reject mentor
-  const handleReject = async (id) => {
-    try {
-      await put(`/users/mentors/${id}/reject`);
-      setToast({ open: true, type: "info", message: "Mentor request rejected ❌" });
-      loadMentors();
-    } catch (err) {
-      setToast({ open: true, type: "error", message: "Error rejecting mentor" });
-    }
-  };
-
-  if (loading)
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
-        <CircularProgress />
-      </Box>
-    );
+  if (loading) return <div className="flex justify-center items-center h-screen"><Loader className="animate-spin text-blue-600" size={32} /></div>;
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 4 },
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #1e1e2f, #292946)",
-        color: "#fff",
-      }}
-    >
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        alignItems="center"
-        justifyContent="space-between"
-        spacing={2}
-        sx={{ mb: 4 }}
-      >
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Users size={40} color="#6c63ff" />
-          <Box>
-            <Typography variant="h4" fontWeight={700}>
-              Mentor Approval Panel
-            </Typography>
-            <Typography variant="subtitle1" color="rgba(255,255,255,0.7)">
-              Manage mentor requests — only for Admins & SuperAdmins
-            </Typography>
-          </Box>
-        </Stack>
-      </Stack>
+    <div className="max-w-6xl mx-auto p-6 md:p-10 pb-20">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+         <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+            <span className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><Users size={28} /></span>
+            Mentor Panel
+         </h1>
+         <p className="text-slate-500 font-medium mt-2 ml-1">Manage incoming mentor requests and profiles.</p>
+      </motion.div>
 
       {mentors.length === 0 ? (
-        <Typography color="rgba(255,255,255,0.7)">
-          No pending mentor requests found.
-        </Typography>
+        <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+           <Award size={48} className="text-slate-200 mx-auto mb-4" />
+           <p className="text-slate-400 font-bold text-lg">No pending mentor requests.</p>
+        </div>
       ) : (
-        <Stack spacing={3}>
-          {mentors.map((mentor, index) => (
-            <motion.div
-              key={mentor._id || index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <Card
-                sx={{
-                  background: "rgba(255,255,255,0.08)",
-                  borderRadius: "16px",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  backdropFilter: "blur(10px)",
-                }}
-              >
-                <CardContent>
-                  <Stack
-                    direction={{ xs: "column", md: "row" }}
-                    justifyContent="space-between"
-                    alignItems={{ xs: "flex-start", md: "center" }}
-                    spacing={3}
-                  >
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <Avatar
-                        src={mentor.avatar}
-                        alt={mentor.name}
-                        sx={{ width: 60, height: 60, border: "2px solid #6c63ff" }}
-                      >
-                        {mentor.name?.charAt(0)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" fontWeight={600}>
-                          {mentor.name}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="rgba(255,255,255,0.7)"
-                        >
-                          {mentor.email}
-                        </Typography>
-                      </Box>
-                    </Stack>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <AnimatePresence>
+             {mentors.map((mentor) => (
+               <motion.div 
+                 key={mentor._id}
+                 initial={{ opacity: 0, scale: 0.95 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 exit={{ opacity: 0, scale: 0.95 }}
+                 className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden"
+               >
+                  <div className="flex items-start gap-4 mb-6">
+                     <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-2xl shrink-0 overflow-hidden">
+                        {mentor.avatar ? (
+                           <img src={mentor.avatar} alt={mentor.name} className="w-full h-full object-cover" />
+                        ) : mentor.name?.charAt(0)}
+                     </div>
+                     <div className="overflow-hidden">
+                        <h3 className="text-lg font-bold text-slate-800 truncate">{mentor.name}</h3>
+                        <p className="text-slate-500 text-sm font-medium flex items-center gap-1 truncate"><Mail size={12} /> {mentor.email}</p>
+                     </div>
+                  </div>
 
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body1" sx={{ mb: 1 }}>
-                        <b>Expertise:</b> {mentor.mentorProfile?.expertise || "Not specified"}
-                      </Typography>
-                      <Typography variant="body1" sx={{ mb: 1 }}>
-                        <b>Experience:</b> {mentor.mentorProfile?.experience || 0} years
-                      </Typography>
-                      <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                        <b>Bio:</b> {mentor.mentorProfile?.bio || "No bio provided"}
-                      </Typography>
-                    </Box>
+                  <div className="space-y-3 mb-6">
+                     <div className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-xl">
+                        <span className="text-slate-500 font-medium">Expertise</span>
+                        <span className="font-bold text-slate-800">{mentor.mentorProfile?.expertise || "—"}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-xl">
+                        <span className="text-slate-500 font-medium">Experience</span>
+                        <span className="font-bold text-slate-800">{mentor.mentorProfile?.experience || 0} years</span>
+                     </div>
+                     <div className="text-sm p-3 bg-slate-50 rounded-xl">
+                        <span className="text-slate-500 font-medium block mb-1">Bio</span>
+                        <p className="italic text-slate-600 leading-relaxed text-xs">"{mentor.mentorProfile?.bio || "No bio"}"</p>
+                     </div>
+                  </div>
 
-                    <Stack direction="row" spacing={2}>
-                      <Button
-                        variant="contained"
-                        color="success"
-                        startIcon={<CheckCircle size={18} />}
-                        onClick={() => handleApprove(mentor._id)}
-                        sx={{
-                          textTransform: "none",
-                          fontWeight: 600,
-                          borderRadius: "20px",
-                          background: "linear-gradient(135deg, #00c853, #43a047)",
-                        }}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        startIcon={<XCircle size={18} />}
-                        onClick={() => handleReject(mentor._id)}
-                        sx={{
-                          textTransform: "none",
-                          fontWeight: 600,
-                          borderRadius: "20px",
-                          background: "linear-gradient(135deg, #ff5252, #d32f2f)",
-                        }}
-                      >
-                        Reject
-                      </Button>
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </Stack>
+                  <div className="grid grid-cols-2 gap-3">
+                     <button onClick={() => handleAction(mentor._id, 'approve')} className="py-2.5 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm shadow-lg shadow-green-200">
+                        <CheckCircle size={16} /> Approve
+                     </button>
+                     <button onClick={() => handleAction(mentor._id, 'reject')} className="py-2.5 bg-white text-red-600 border border-red-200 font-bold rounded-xl hover:bg-red-50 transition-colors flex items-center justify-center gap-2 text-sm">
+                        <XCircle size={16} /> Reject
+                     </button>
+                  </div>
+               </motion.div>
+             ))}
+           </AnimatePresence>
+        </div>
       )}
-
-      {/* ✅ Snackbar / Toast */}
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3000}
-        onClose={() => setToast({ ...toast, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          severity={toast.type}
-          variant="filled"
-          onClose={() => setToast({ ...toast, open: false })}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 }

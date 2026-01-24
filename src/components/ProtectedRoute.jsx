@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { CircularProgress, Box, Typography } from "@mui/material";
+import { Loader } from "lucide-react";
 
 export default function ProtectedRoute({
   children,
@@ -10,46 +10,28 @@ export default function ProtectedRoute({
   const { user, role, loading } = useAuth();
   const location = useLocation();
 
-  // ⏳ Wait for auth to finish
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          background: "linear-gradient(135deg, #1e1e2f, #292946)",
-          color: "white",
-        }}
-      >
-        <CircularProgress size={36} sx={{ color: "#6c63ff", mb: 2 }} />
-        <Typography variant="body1">Verifying access...</Typography>
-      </Box>
+      <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+        <Loader size={36} className="animate-spin text-indigo-500 mb-4" />
+        <p className="font-medium animate-pulse">Verifying access...</p>
+      </div>
     );
   }
 
-  // 🚫 Not logged in
   if (!user) return <Navigate to="/login" replace />;
 
   const normalizedRole = (role || "").toLowerCase();
 
-  // 👑 Superadmin override
   if (normalizedRole === "superadmin") return children;
 
-  // 🚀 Recruiter redirection from /dashboard → /rpanel/overview
   if (normalizedRole === "recruiter" && location.pathname === "/dashboard") {
-    console.info("Redirecting recruiter to /rpanel/overview");
     return <Navigate to="/rpanel/overview" replace />;
   }
 
-  // 🔒 Role-based access control
   if (roles.length > 0 && !roles.includes(normalizedRole)) {
-    console.warn(`Access denied for ${normalizedRole}`);
     return <Navigate to={redirectPath} replace />;
   }
 
-  // ✅ Authorized
   return children;
 }

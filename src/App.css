@@ -1,123 +1,110 @@
-/* 🌈 PREMIUM NAVBAR STYLING */
-.MuiAppBar-root {
-  position: sticky;
-  top: 0;
-  z-index: 1200;
-  background: rgba(255, 255, 255, 0.25) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 4px 30px rgba(108, 99, 255, 0.15);
-  border-radius: 18px;
-  margin: 12px auto;
-  width: 96%;
-  transition: all 0.4s ease;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Enterprise Standard: Darker text for readability, subtle background */
+    @apply min-h-screen m-0 text-slate-900 bg-slate-50 antialiased transition-colors duration-300;
+    /* This makes fonts look crisper on Mac/iOS */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body.dark-mode {
+    @apply bg-slate-950 text-slate-200;
+  }
+
+  /* Refined Scrollbar - Thinner and subtler */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors;
+  }
 }
 
-body.dark-mode .MuiAppBar-root {
-  background: rgba(30, 30, 45, 0.65) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 25px rgba(176, 148, 255, 0.25);
-}
+@layer components {
+  /* =======================================
+    1. Navigation (The "Command Center")
+    Less floating, more structural.
+  ======================================= */
+  .nav-shell {
+    @apply sticky top-4 z-50 mx-auto w-[95%] max-w-7xl
+          rounded-2xl border border-slate-200/60
+          bg-white/80 shadow-sm backdrop-blur-md
+          transition-all duration-300;
+  }
+  
+  body.dark-mode .nav-shell {
+    @apply border-slate-800/60 bg-slate-900/80 shadow-xl shadow-black/20;
+  }
 
-/* Navbar text and logo */
-.MuiTypography-root {
-  font-weight: 700 !important;
-  background: linear-gradient(90deg, #6c63ff, #ff3366);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: all 0.3s ease;
-}
-body.dark-mode .MuiTypography-root {
-  background: linear-gradient(90deg, #b094ff, #ff5c8a);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+  /* =======================================
+    2. Cards (The "Glass Surface")
+    Uses an inner ring for ultra-sharp edges.
+  ======================================= */
+  .glass-panel {
+    @apply relative rounded-xl p-6
+          bg-white border border-slate-200
+          shadow-sm transition-all duration-300
+          hover:shadow-md hover:border-slate-300;
+  }
+  
+  body.dark-mode .glass-panel {
+    /* In dark mode, we use a subtle gradient to show depth without "glow" */
+    @apply bg-slate-900/60 border-slate-800
+          shadow-2xl shadow-black/40
+          backdrop-blur-sm
+          hover:border-slate-700 hover:bg-slate-900/80;
+  }
 
-/* 🧭 Nav Buttons */
-.MuiButton-root {
-  color: #1e1e2e !important;
-  font-weight: 600 !important;
-  border-radius: 14px !important;
-  text-transform: none !important;
-  font-size: 1rem !important;
-  padding: 8px 18px !important;
-  transition: all 0.3s ease !important;
-}
+  /* =======================================
+    3. Buttons (Primary Action)
+    High contrast, precise padding.
+  ======================================= */
+  .btn-base {
+    @apply inline-flex items-center justify-center
+          rounded-lg px-4 py-2 text-sm font-medium tracking-tight
+          transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 active:scale-[0.98];
+  }
 
-.MuiButton-root:hover {
-  background: rgba(108, 99, 255, 0.12);
-  transform: translateY(-2px);
-}
+  /* =======================================
+    4. Badges (Formerly Pills)
+    Clean status indicators.
+  ======================================= */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 
+          bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200;
+  }
+  
+  body.dark-mode .badge {
+    @apply bg-slate-800/50 text-slate-300 border-slate-700/50;
+  }
+  
+  /* Variant: Primary Badge */
+  .badge-primary {
+    @apply bg-indigo-50 text-indigo-700 border-indigo-200/60;
+  }
+  body.dark-mode .badge-primary {
+    @apply bg-indigo-500/10 text-indigo-300 border-indigo-500/20;
+  }
 
-body.dark-mode .MuiButton-root {
-  color: #f5f5ff !important;
-}
-body.dark-mode .MuiButton-root:hover {
-  background: rgba(176, 148, 255, 0.15);
-}
+  /* =======================================
+    5. Enterprise Utilities
+  ======================================= */
+  
+  /* Text Balance for headlines */
+  .text-balance {
+    text-wrap: balance;
+  }
 
-/* ✨ Active Page Highlight */
-.nav-active {
-  background: linear-gradient(135deg, #6c63ff, #ff3366);
-  color: white !important;
-  box-shadow: 0 0 15px rgba(108, 99, 255, 0.4);
-  transform: translateY(-2px);
-}
-body.dark-mode .nav-active {
-  background: linear-gradient(135deg, #b094ff, #ff5c8a);
-  box-shadow: 0 0 18px rgba(176, 148, 255, 0.5);
-}
-
-/* 🟣 Manage Users Button */
-.MuiButton-containedWarning {
-  background: linear-gradient(135deg, #ffb300, #ff9800) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4) !important;
-  transition: all 0.3s ease;
-}
-.MuiButton-containedWarning:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 22px rgba(255, 193, 7, 0.55) !important;
-}
-
-/* Avatar glow */
-.MuiAvatar-root {
-  box-shadow: 0 0 10px rgba(108, 99, 255, 0.25);
-  transition: all 0.3s ease;
-}
-.MuiAvatar-root:hover {
-  box-shadow: 0 0 20px rgba(108, 99, 255, 0.45);
-}
-
-/* Chip (Role Badge) */
-.MuiChip-root {
-  font-weight: 600 !important;
-  border-radius: 10px !important;
-  padding: 0 8px !important;
-  text-transform: capitalize !important;
-  background: rgba(108, 99, 255, 0.15) !important;
-  color: #1a1a2e !important;
-}
-body.dark-mode .MuiChip-root {
-  background: rgba(176, 148, 255, 0.25) !important;
-  color: #fff !important;
-}
-
-/* 🌓 Theme Toggle Button (Navbar version) */
-.nav-theme-toggle {
-  background: linear-gradient(135deg, #6c63ff, #ff3366);
-  color: #fff;
-  border-radius: 50%;
-  padding: 10px;
-  box-shadow: 0 0 12px rgba(108, 99, 255, 0.4);
-  transition: all 0.3s ease;
-}
-.nav-theme-toggle:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(108, 99, 255, 0.6);
-}
-body.dark-mode .nav-theme-toggle {
-  background: linear-gradient(135deg, #b094ff, #ff5c8a);
-  box-shadow: 0 0 16px rgba(176, 148, 255, 0.5);
+  /* Subtle border glow for dark mode only */
+  .border-glow {
+    @apply border-transparent;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
 }

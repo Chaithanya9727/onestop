@@ -1,65 +1,28 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  CircularProgress,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Chip,
-  Stack,
-  Tooltip,
-  Button,
-  TextField,
-  MenuItem,
-  InputAdornment,
-  IconButton,
-  Drawer,
-  Divider,
-} from "@mui/material";
-import { motion } from "framer-motion";
-import {
-  Search,
-  Refresh,
-  Visibility,
-  Download,
-  CheckCircle,
-  Cancel,
-} from "@mui/icons-material";
+import React, { useEffect, useState, useMemo } from "react";
 import useApi from "../hooks/useApi";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ShieldCheck, Search, Eye, Check, X, Trash2, Briefcase, Users, Loader, Filter
+} from "lucide-react";
 
 export default function AdminJobs() {
-  const { get, patch, del, post } = useApi();
+  const { get, patch, del } = useApi();
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
-  const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [applicants, setApplicants] = useState([]);
-  const [loadingApplicants, setLoadingApplicants] = useState(false);
-  const [analytics, setAnalytics] = useState(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("pending");
+  const [viewJob, setViewJob] = useState(null);
 
-  // ✅ Fetch all jobs and analytics
   const fetchJobs = async () => {
     setLoading(true);
-    setError("");
     try {
-      const [jobsRes, analyticsRes] = await Promise.all([
-        get("/admin/jobs"),
-        get("/admin/insights"),
-      ]);
-      setJobs(jobsRes.data || []);
-      setAnalytics(analyticsRes.data || null);
+      const res = await get("/admin/jobs");
+      const list = res || [];
+      setJobs(list);
     } catch (err) {
       console.error(err);
-      setError("Failed to load jobs or analytics.");
     } finally {
       setLoading(false);
     }
@@ -69,412 +32,217 @@ export default function AdminJobs() {
     fetchJobs();
   }, []);
 
-  const filtered = useMemo(() => {
-    return jobs.filter((j) => {
-      const q = query.trim().toLowerCase();
-      const matchesQuery =
-        !q ||
-        j.title?.toLowerCase().includes(q) ||
-        j.location?.toLowerCase().includes(q) ||
-        j.recruiter?.email?.toLowerCase().includes(q) ||
-        j.recruiter?.name?.toLowerCase().includes(q) ||
-        j.recruiter?.orgName?.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === "all" ? true : j.status === statusFilter;
-      return matchesQuery && matchesStatus;
+  const stats = useMemo(() => ({
+    total: jobs.length,
+    active: jobs.filter(j => j.status === 'open' || j.status === 'active' || j.status === 'approved').length,
+    pending: jobs.filter(j => j.status === 'pending').length,
+    closed: jobs.filter(j => j.status === 'closed' || j.status === 'rejected').length,
+  }), [jobs]);
+
+  const handleAction = async (jobId, action) => {
+    if(!window.confirm(`Are you sure you want to ${action} this job?`)) return;
+
+    setActionLoading(jobId);
+    try {
+      await patch(`/admin/jobs/${jobId}/approve`, { approved: action === 'approve' });
+      setJobs(prev => prev.map(j => j._id === jobId ? { ...j, status: action === 'approve' ? 'approved' : 'rejected' } : j));
+      if (viewJob?._id === jobId) setViewJob(prev => ({...prev, status: action === 'approve' ? 'approved' : 'rejected'}));
+    } catch (err) {
+      console.error("Action failed:", err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (jobId) => {
+    if (!window.confirm("⚠️ ARE YOU SURE? \n\nThis will PERMANENTLY DELETE this job and all associated applications from the database.\nThis action cannot be undone.")) return;
+
+    setActionLoading(jobId);
+    try {
+        await del(`/admin/jobs/${jobId}`);
+        
+        setJobs(prev => prev.filter(j => j._id !== jobId));
+        if (viewJob?._id === jobId) setViewJob(null);
+        alert("Job deleted permanently.");
+    } catch (err) {
+        console.error("Delete failed:", err);
+        alert("Failed to delete job.");
+    } finally {
+        setActionLoading(null);
+    }
+  };
+
+  const filteredJobs = useMemo(() => {
+    return jobs.filter(job => {
+      const matchesSearch = job.title?.toLowerCase().includes(search.toLowerCase()) || 
+                            job.postedBy?.name?.toLowerCase().includes(search.toLowerCase());
+      
+      if (filter === 'all') return matchesSearch;
+      if (filter === 'pending') return matchesSearch && job.status === 'pending';
+      if (filter === 'active') return matchesSearch && (job.status === 'approved' || job.status === 'active' || job.status === 'open');
+      if (filter === 'closed') return matchesSearch && (job.status === 'closed' || job.status === 'rejected');
+      
+      return matchesSearch;
     });
-  }, [jobs, query, statusFilter]);
+  }, [jobs, search, filter]);
 
-  // ✅ Toggle job open/close
-  const handleToggle = async (job) => {
-    const newStatus = job.status === "open" ? "closed" : "open";
-    setActionLoading(job._id);
-    try {
-      const res = await patch(`/admin/jobs/${job._id}/status`, { status: newStatus });
-      setJobs((prev) => prev.map((x) => (x._id === job._id ? res.data.job : x)));
-
-      // 🔔 Notify recruiter
-      await post("/notifications/send", {
-        userId: job.recruiter?._id,
-        title: "Job Status Updated",
-        message: `Your job "${job.title}" has been marked as ${newStatus}.`,
-      });
-    } catch (err) {
-      console.error(err);
-      setError("Failed to update status.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // ✅ Approve job
-  const handleApprove = async (job) => {
-    setActionLoading(job._id);
-    try {
-      const res = await patch(`/admin/jobs/${job._id}/approve`, { approved: true });
-      setJobs((prev) => prev.map((x) => (x._id === job._id ? res.data.job : x)));
-
-      // 🔔 Notify recruiter
-      await post("/notifications/send", {
-        userId: job.recruiter?._id,
-        title: "Job Approved ✅",
-        message: `Your job "${job.title}" has been approved and is now visible to candidates.`,
-      });
-    } catch (err) {
-      console.error(err);
-      setError("Failed to approve job.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // ✅ Reject job
-  const handleReject = async (job) => {
-    if (!window.confirm("Reject this job? This will notify the recruiter.")) return;
-    setActionLoading(job._id);
-    try {
-      await patch(`/admin/jobs/${job._id}/approve`, { approved: false });
-      setJobs((prev) =>
-        prev.map((x) =>
-          x._id === job._id ? { ...x, approved: false, status: "closed" } : x
-        )
-      );
-
-      // 🔔 Notify recruiter
-      await post("/notifications/send", {
-        userId: job.recruiter?._id,
-        title: "Job Rejected ❌",
-        message: `Your job "${job.title}" was rejected by the admin. Please review your listing.`,
-      });
-    } catch (err) {
-      console.error(err);
-      setError("Failed to reject job.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // ✅ Delete job
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this job listing? This cannot be undone.")) return;
-    setActionLoading(id);
-    try {
-      await del(`/admin/jobs/${id}`);
-      setJobs((prev) => prev.filter((x) => x._id !== id));
-    } catch (err) {
-      console.error(err);
-      setError("Failed to delete job.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  // ✅ View applicants
-  const handleViewApplicants = async (job) => {
-    setSelectedJob(job);
-    setDrawerOpen(true);
-    setApplicants([]);
-    setLoadingApplicants(true);
-    try {
-      const res = await get(`/admin/jobs/${job._id}/applicants`);
-      setApplicants(res.data.applicants || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingApplicants(false);
-    }
-  };
-
-  // ✅ Export CSV
-  const exportCSV = () => {
-    if (applicants.length === 0) return;
-    const header = ["Name", "Email", "Mobile", "Role", "Applied At"];
-    const rows = applicants.map((a) => [
-      a.name,
-      a.email,
-      a.mobile,
-      a.role,
-      new Date(a.appliedAt).toLocaleString(),
-    ]);
-
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [header, ...rows].map((e) => e.join(",")).join("\n");
-
-    const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
-    link.download = `${selectedJob.title}_Applicants.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  if (loading) return <div className="flex justify-center items-center h-screen"><Loader className="animate-spin text-blue-600" size={32} /></div>;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 25 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <Typography
-        variant="h5"
-        fontWeight={700}
-        mb={3}
-        sx={{
-          background: "linear-gradient(90deg, #6c63ff, #ff4081)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        🧭 Admin · Job Oversight & Analytics
-      </Typography>
+    <div className="max-w-7xl mx-auto p-6 pb-20">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
+          <span className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><ShieldCheck size={28} /></span>
+          Job Oversight
+        </h1>
+        <p className="text-slate-500 font-medium mt-2 ml-1">Manage and moderate job postings.</p>
+      </motion.div>
 
-      {/* Analytics Section */}
-      {analytics && (
-        <Paper
-          elevation={3}
-          sx={{
-            p: 3,
-            mb: 3,
-            borderRadius: 3,
-            background: "linear-gradient(135deg, #f7f9fc, #eef1f6)",
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight={700} mb={1}>
-            📊 System Overview
-          </Typography>
-          <Stack direction="row" spacing={3} flexWrap="wrap">
-            <Chip
-              label={`Total Jobs: ${analytics.jobs?.totalJobs || 0}`}
-              color="primary"
-            />
-            <Chip
-              label={`Open Jobs: ${analytics.jobs?.openJobs || 0}`}
-              color="success"
-            />
-            <Chip
-              label={`Closed Jobs: ${analytics.jobs?.closedJobs || 0}`}
-              color="default"
-            />
-            <Chip
-              label={`Recruiters: ${analytics.recruiters?.totalRecruiters || 0}`}
-              color="secondary"
-            />
-            <Chip
-              label={`Applicants: ${analytics.applicants?.totalApplicants || 0}`}
-              color="info"
-            />
-          </Stack>
-        </Paper>
-      )}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: "Total Jobs", val: stats.total, color: "bg-slate-50 text-slate-600" },
+          { label: "Pending", val: stats.pending, color: "bg-amber-50 text-amber-600" },
+          { label: "Active", val: stats.active, color: "bg-green-50 text-green-600" },
+          { label: "Closed/Rejected", val: stats.closed, color: "bg-red-50 text-red-600" },
+        ].map((s, i) => (
+           <div key={i} className={`p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between ${s.color}`}>
+              <span className="font-bold text-sm uppercase tracking-wide opacity-80">{s.label}</span>
+              <span className="text-2xl font-black">{s.val}</span>
+           </div>
+        ))}
+      </div>
 
-      {/* Filters */}
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={2}
-        alignItems={{ xs: "stretch", md: "center" }}
-        justifyContent="space-between"
-        mb={2}
-      >
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flex={1}>
-          <TextField
-            placeholder="Search title, location, recruiter name/email/org..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            select
-            label="Status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            sx={{ minWidth: 180 }}
-          >
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="open">Open</MenuItem>
-            <MenuItem value="closed">Closed</MenuItem>
-          </TextField>
-        </Stack>
+      {/* Main Content */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
+        {/* Filters */}
+        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between gap-4">
+           <div className="flex gap-1 bg-slate-100 p-1 rounded-xl self-start">
+             {['pending', 'active', 'closed', 'all'].map(f => (
+               <button key={f} onClick={() => setFilter(f)} 
+                 className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${filter === f ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                 {f}
+               </button>
+             ))}
+           </div>
+           <div className="relative w-full md:w-80">
+             <Search className="absolute left-3.5 top-2.5 text-slate-400" size={20} />
+             <input type="text" placeholder="Search jobs or recruiters..." value={search} onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-500 outline-none font-medium transition-colors" />
+           </div>
+        </div>
 
-        <IconButton onClick={fetchJobs} title="Refresh">
-          <Refresh />
-        </IconButton>
-      </Stack>
+        {/* List */}
+        {filteredJobs.length === 0 ? (
+           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <Briefcase size={48} className="mb-4 opacity-30" />
+              <p className="font-bold">No jobs found matching your criteria.</p>
+           </div>
+        ) : (
+           <div className="divide-y divide-slate-100">
+             {filteredJobs.map((job) => (
+                <div key={job._id} className="p-6 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                   <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                         <h3 className="font-bold text-lg text-slate-800">{job.title}</h3>
+                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border
+                            ${job.status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                              job.status === 'approved' || job.status === 'active' || job.status === 'open' ? 'bg-green-50 text-green-700 border-green-200' : 
+                              'bg-red-50 text-red-700 border-red-200'}`}>
+                            {job.status}
+                         </span>
+                      </div>
+                      <div className="text-sm text-slate-500 font-medium flex items-center gap-2">
+                         <Briefcase size={14} /> {job.type} <span className="text-slate-300">•</span> 
+                         <Users size={14} /> {job.location} <span className="text-slate-300">•</span>
+                         Posted by <span className="text-blue-600">{job.postedBy?.name || "Unknown"}</span>
+                      </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-2 self-end md:self-auto">
+                      <button onClick={() => setViewJob(job)} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="View Details">
+                         <Eye size={20} />
+                      </button>
+                      
+                      {job.status === 'pending' && (
+                         <>
+                            <button onClick={() => handleAction(job._id, 'approve')} disabled={actionLoading === job._id}
+                               className="px-4 py-2 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg shadow-green-200 flex items-center gap-2 text-sm disabled:opacity-50">
+                               {actionLoading === job._id ? <Loader className="animate-spin" size={16} /> : <Check size={16} />} Approve
+                            </button>
+                            <button onClick={() => handleAction(job._id, 'reject')} disabled={actionLoading === job._id}
+                               className="px-4 py-2 bg-white text-red-600 border border-red-200 font-bold rounded-xl hover:bg-red-50 flex items-center gap-2 text-sm disabled:opacity-50">
+                               {actionLoading === job._id ? <Loader className="animate-spin" size={16} /> : <X size={16} />} Reject
+                            </button>
+                         </>
+                      )}
+                      
+                       {job.status !== 'pending' && (
+                          <button onClick={() => handleDelete(job._id)} disabled={actionLoading === job._id} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Delete Permanently">
+                             {actionLoading === job._id ? <Loader className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                          </button>
+                       )}
+                   </div>
+                </div>
+             ))}
+           </div>
+        )}
+      </div>
 
-      {error && (
-        <Typography color="error" mb={2}>
-          {error}
-        </Typography>
-      )}
+      {/* Modal */}
+      <AnimatePresence>
+         {viewJob && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} 
+                  className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
+                  <div className="p-6 md:p-8">
+                     <div className="flex justify-between items-start mb-6">
+                        <div>
+                           <h2 className="text-2xl font-black text-slate-800">{viewJob.title}</h2>
+                           <p className="text-slate-500 font-medium mt-1">
+                              Posted by <span className="text-blue-600">{viewJob.postedBy?.name}</span> on {new Date(viewJob.createdAt).toLocaleDateString()}
+                           </p>
+                        </div>
+                        <button onClick={() => setViewJob(null)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                           <X size={20} className="text-slate-600" />
+                        </button>
+                     </div>
+                     
+                     <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="p-4 bg-slate-50 rounded-xl">
+                           <p className="text-xs font-bold text-slate-400 uppercase mb-1">Salary</p>
+                           <p className="text-slate-800 font-bold">{viewJob.salary || "Not Disclosed"}</p>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-xl">
+                           <p className="text-xs font-bold text-slate-400 uppercase mb-1">Location</p>
+                           <p className="text-slate-800 font-bold">{viewJob.location}</p>
+                        </div>
+                     </div>
 
-      {loading ? (
-        <Box display="flex" justifyContent="center" py={6}>
-          <CircularProgress />
-        </Box>
-      ) : filtered.length === 0 ? (
-        <Typography color="text.secondary" textAlign="center" mt={4}>
-          No jobs match your filters.
-        </Typography>
-      ) : (
-        <Paper elevation={3} sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Title</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Deadline</TableCell>
-                <TableCell>Recruiter</TableCell>
-                <TableCell>Applicants</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Approval</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.map((job) => (
-                <TableRow key={job._id}>
-                  <TableCell>{job.title}</TableCell>
-                  <TableCell>{job.location || "Remote"}</TableCell>
-                  <TableCell>
-                    {job.deadline ? new Date(job.deadline).toLocaleDateString() : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Stack spacing={0.3}>
-                      <Typography variant="body2" fontWeight={600}>
-                        {job.recruiter?.name || "—"}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {job.recruiter?.email || "—"}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>{job.applicants?.length || 0}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={job.status}
-                      color={job.status === "open" ? "success" : "default"}
-                      size="small"
-                      sx={{ textTransform: "capitalize" }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {job.approved ? (
-                      <Chip label="Approved" color="success" size="small" />
-                    ) : (
-                      <Chip label="Pending" color="warning" size="small" />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1}>
-                      <Tooltip title="View Applicants">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<Visibility />}
-                          onClick={() => handleViewApplicants(job)}
-                        >
-                          View
-                        </Button>
-                      </Tooltip>
-                      <Tooltip title="Approve Job">
-                        <span>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="success"
-                            startIcon={<CheckCircle />}
-                            disabled={actionLoading === job._id}
-                            onClick={() => handleApprove(job)}
-                          >
-                            Approve
-                          </Button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title="Reject Job">
-                        <span>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            startIcon={<Cancel />}
-                            disabled={actionLoading === job._id}
-                            onClick={() => handleReject(job)}
-                          >
-                            Reject
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Paper>
-      )}
+                     <div className="mb-6">
+                        <p className="text-sm font-bold text-slate-800 mb-2">Description</p>
+                        <div className="text-slate-600 leading-relaxed text-sm p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+                           {viewJob.description}
+                        </div>
+                     </div>
+                     
+                     {viewJob.status === 'pending' && (
+                        <div className="flex gap-3 pt-6 border-t border-slate-100">
+                           <button onClick={() => handleAction(viewJob._id, 'approve')} className="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg shadow-green-200">
+                              Approve Job
+                           </button>
+                           <button onClick={() => handleAction(viewJob._id, 'reject')} className="flex-1 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 border border-red-200">
+                              Reject Job
+                           </button>
+                        </div>
+                     )}
+                  </div>
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
 
-      {/* 👥 Applicants Drawer */}
-      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Box sx={{ width: 400, p: 3 }}>
-          <Typography variant="h6" fontWeight={700} mb={1}>
-            Applicants — {selectedJob?.title}
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-          {loadingApplicants ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <CircularProgress />
-            </Box>
-          ) : applicants.length === 0 ? (
-            <Typography color="text.secondary">
-              No applicants for this job yet.
-            </Typography>
-          ) : (
-            <>
-              <Paper
-                variant="outlined"
-                sx={{
-                  maxHeight: "60vh",
-                  overflow: "auto",
-                  borderRadius: 2,
-                  mb: 2,
-                }}
-              >
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Email</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {applicants.map((a, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{a.name}</TableCell>
-                        <TableCell>{a.email}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Paper>
-
-              <Button
-                fullWidth
-                variant="contained"
-                color="primary"
-                startIcon={<Download />}
-                onClick={exportCSV}
-              >
-                Export CSV
-              </Button>
-            </>
-          )}
-        </Box>
-      </Drawer>
-    </motion.div>
+    </div>
   );
 }

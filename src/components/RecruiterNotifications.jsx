@@ -1,236 +1,137 @@
-// src/components/RecruiterNotifications.jsx
 import React, { useState, useEffect } from "react";
-import {
-  Badge,
-  IconButton,
-  Menu,
-  MenuItem,
-  Typography,
-  Divider,
-  ListItemText,
-  Box,
-  CircularProgress,
-  Tooltip,
-  Button,
-} from "@mui/material";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, X, CheckCircle, Loader } from "lucide-react";
 import useApi from "../hooks/useApi";
-import { useToast } from "../components/ToastProvider.jsx";
-import { useSocket } from "../socket.jsx"; // ✅ Real-time socket context
+import { useSocket } from "../socket";
+import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function RecruiterNotifications() {
-  const { get, patch } = useApi();
-  const { showToast } = useToast();
-  const { socket } = useSocket();
-
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [unread, setUnread] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  const { get, patch } = useApi();
+  const { socket } = useSocket();
+  const { user } = useAuth();
 
-  const open = Boolean(anchorEl);
+  // Load Notifications
+  useEffect(() => {
+    if (user) {
+      loadNotifications();
+    }
+  }, [user]);
 
-  /* =====================================================
-     📥 Fetch notifications
-  ====================================================== */
-  const fetchNotifications = async () => {
-    setLoading(true);
+  // Real-time updates
+  useEffect(() => {
+    if (!socket || !user?._id) return;
+
+    const handleNotif = (payload) => {
+      setNotifications(prev => [{ ...payload, read: false, createdAt: new Date().toISOString() }, ...prev]);
+      setUnreadCount(prev => prev + 1);
+    };
+
+    socket.on("notification:new", handleNotif);
+    return () => socket.off("notification:new", handleNotif);
+  }, [socket, user]);
+
+  const loadNotifications = async () => {
     try {
-      const res = await get("/api/notifications");
-      const data = Array.isArray(res?.notifications)
-        ? res.notifications
-        : [];
-      setNotifications(data);
-      setUnread(data.filter((n) => !n.read).length);
+      setLoading(true);
+      const res = await get("/notifications");
+      const list = res?.notifications || res?.data?.notifications || [];
+      setNotifications(list.slice(0, 10)); // Top 10
+      setUnreadCount(list.filter(n => !n.read).length);
     } catch (err) {
-      console.error("Error fetching notifications:", err);
-      showToast("Failed to load notifications", "error");
+      console.error("Notifications error", err);
     } finally {
       setLoading(false);
     }
   };
 
-  /* =====================================================
-     🧠 Mark all as read
-  ====================================================== */
   const markAllRead = async () => {
     try {
-      await patch("/api/notifications/mark-read");
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnread(0);
-      showToast("All notifications marked as read", "success");
-    } catch (err) {
-      showToast("Failed to mark notifications", "error");
-    }
+      await patch("/notifications/mark-all/read");
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) { console.error(err); }
   };
 
-  /* =====================================================
-     ⚡ Real-time Socket Notifications
-  ====================================================== */
-  useEffect(() => {
-    fetchNotifications();
-
-    if (!socket) return;
-    const handleNewNotification = (notif) => {
-      console.log("🔔 [Socket Notification]", notif);
-      showToast(`${notif.title}: ${notif.message}`, "info");
-
-      setNotifications((prev) => [
-        { ...notif, _id: notif._id || Date.now(), read: false },
-        ...prev,
-      ]);
-      setUnread((u) => u + 1);
-    };
-
-    socket.on("notification:new", handleNewNotification);
-    return () => socket.off("notification:new", handleNewNotification);
-  }, [socket]);
-
-  /* =====================================================
-     🧭 Handlers
-  ====================================================== */
-  const handleOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-    fetchNotifications();
-  };
-  const handleClose = () => setAnchorEl(null);
-
-  /* =====================================================
-     🧩 Render
-  ====================================================== */
   return (
-    <>
-      {/* 🔔 Notification Bell */}
-      <Tooltip title="Notifications">
-        <IconButton
-          onClick={handleOpen}
-          aria-controls={open ? "notifications-menu" : undefined}
-          aria-haspopup="true"
-          aria-expanded={open ? "true" : undefined}
-          color="inherit"
-        >
-          <Badge badgeContent={unread} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-      </Tooltip>
-
-      {/* 📬 Dropdown Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        id="notifications-menu"
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          component: motion.div,
-          initial: { opacity: 0, scale: 0.95, y: -10 },
-          animate: { opacity: 1, scale: 1, y: 0 },
-          transition: { duration: 0.15 },
-          elevation: 4,
-          sx: {
-            mt: 1.5,
-            borderRadius: 2,
-            minWidth: 320,
-            maxHeight: 400,
-            boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-            overflowY: "auto",
-            backdropFilter: "blur(12px)",
-            background: "rgba(255,255,255,0.95)",
-            "&::-webkit-scrollbar": { width: "6px" },
-            "&::-webkit-scrollbar-thumb": {
-              background: "rgba(0,0,0,0.1)",
-              borderRadius: "4px",
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: "right", vertical: "top" }}
-        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+    <div className="relative">
+      <button 
+         onClick={() => setIsOpen(!isOpen)} 
+         className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
       >
-        {/* 🔹 Header */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: 2,
-            py: 1.5,
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight={700}>
-            Notifications
-          </Typography>
-          {notifications.length > 0 && (
-            <Button
-              onClick={markAllRead}
-              size="small"
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                color: "primary.main",
-                "&:hover": { textDecoration: "underline" },
-              }}
-            >
-              Mark all read
-            </Button>
-          )}
-        </Box>
+         <Bell size={20} />
+         {unreadCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#0f1014] animate-pulse"></span>
+         )}
+      </button>
 
-        <Divider />
+      <AnimatePresence>
+         {isOpen && (
+            <>
+               <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsOpen(false)}></div>
+               <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 mt-3 w-96 bg-white dark:bg-[#0f1014] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden"
+               >
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                     <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        Notifications 
+                        {unreadCount > 0 && <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadCount}</span>}
+                     </h3>
+                     <div className="flex gap-2">
+                        <button onClick={markAllRead} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-2 py-1 rounded transition-colors" title="Mark all read">
+                           Mark all read
+                        </button>
+                        <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"><X size={16}/></button>
+                     </div>
+                  </div>
 
-        {/* 🔁 Loading / Empty / Notifications */}
-        {loading ? (
-          <Box display="flex" alignItems="center" justifyContent="center" py={3}>
-            <CircularProgress size={24} />
-          </Box>
-        ) : notifications.length === 0 ? (
-          <Box textAlign="center" py={3}>
-            <Typography variant="body2" color="text.secondary">
-              No notifications
-            </Typography>
-          </Box>
-        ) : (
-          notifications.map((n) => (
-            <MenuItem
-              key={n._id}
-              onClick={handleClose}
-              sx={{
-                whiteSpace: "normal",
-                alignItems: "flex-start",
-                py: 1.2,
-                borderLeft: n.read
-                  ? "4px solid transparent"
-                  : "4px solid #6c63ff",
-                backgroundColor: n.read
-                  ? "transparent"
-                  : "rgba(108,99,255,0.05)",
-                "&:hover": { bgcolor: "rgba(108,99,255,0.08)" },
-              }}
-            >
-              <ListItemText
-                primary={
-                  <Typography
-                    variant="subtitle2"
-                    fontWeight={n.read ? 400 : 600}
-                    color={n.read ? "text.primary" : "primary.main"}
-                  >
-                    {n.title || "Notification"}
-                  </Typography>
-                }
-                secondary={
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mt: 0.3 }}
-                  >
-                    {n.message || "No message provided"}
-                  </Typography>
-                }
-              />
-            </MenuItem>
-          ))
-        )}
-      </Menu>
-    </>
+                  <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                     {loading ? (
+                        <div className="p-8 flex justify-center"><Loader className="animate-spin text-blue-600 dark:text-blue-400" size={24}/></div>
+                     ) : notifications.length === 0 ? (
+                        <div className="p-8 text-center">
+                           <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <Bell size={20} />
+                           </div>
+                           <p className="font-bold text-slate-800 dark:text-white mb-1">No notifications</p>
+                           <p className="text-sm text-slate-500 dark:text-slate-400">You're all caught up!</p>
+                        </div>
+                     ) : (
+                        <div className="divide-y divide-slate-50 dark:divide-white/5">
+                           {notifications.map((n) => (
+                              <div key={n._id} className={`p-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${!n.read ? 'bg-blue-50/30 dark:bg-blue-500/10' : ''}`}>
+                                 <div className="flex gap-3 items-start">
+                                    <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${!n.read ? 'bg-blue-600 dark:bg-blue-500' : 'bg-transparent'}`}></div>
+                                    <div>
+                                       <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">{n.title}</p>
+                                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{n.message}</p>
+                                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 text-center">
+                     <Link to="/notifications" onClick={() => setIsOpen(false)} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                        View All Activity
+                     </Link>
+                  </div>
+               </motion.div>
+            </>
+         )}
+      </AnimatePresence>
+    </div>
   );
 }

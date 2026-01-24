@@ -1,191 +1,204 @@
-// src/pages/RecruiterAnalytics.jsx
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Grid,
-  Typography,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Divider,
-  Chip,
-} from "@mui/material";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts";
-import { motion } from "framer-motion";
 import useApi from "../hooks/useApi";
-import { useToast } from "../components/ToastProvider.jsx";
-import { useSocket } from "../socket.jsx";
+import { motion } from "framer-motion";
+import { 
+  BarChart2, TrendingUp, Users, Briefcase, CheckCircle, PieChart, Activity
+} from "lucide-react";
+import { Line, Doughnut } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  LineElement,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend,
+  Title,
+  Filler
+} from "chart.js";
+
+// Register ChartJS
+ChartJS.register(
+  LineElement, ArcElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend, Title, Filler
+);
 
 export default function RecruiterAnalytics() {
   const { get } = useApi();
-  const { showToast } = useToast();
-  const { socket } = useSocket();
-
-  const [analytics, setAnalytics] = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  const fetchAnalytics = async () => {
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  const loadAnalytics = async () => {
     try {
-      const res = await get("/rpanel/analytics");
-      setAnalytics(res);
+      const res = await get("/recruiter/analytics");
+      setData(res);
     } catch (err) {
-      console.error("Error fetching recruiter analytics:", err);
-      setError("Failed to load analytics data.");
-      showToast("Failed to load analytics data", "error");
+      console.error("Analytics Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
+  if (loading) {
+     return <div className="flex justify-center items-center h-screen"><div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
+  }
+  
+  if (!data) return null;
 
-  // 🔁 Refresh analytics on live recruiter updates
-  useEffect(() => {
-    if (!socket) return;
-    const handleAnalyticsUpdate = (notif) => {
-      if (notif?.type === "job_update" || notif?.type === "application_update") {
-        showToast("Recruiter analytics updated", "info");
-        fetchAnalytics();
+  const { totalJobs, totalApplications, hiredCount, counts, trends } = data;
+
+  // --- CHART CONFIG ---
+  const lineData = {
+    labels: trends.map((t) => new Date(t.date).toLocaleDateString(undefined, {weekday:'short', day:'numeric'})),
+    datasets: [{
+      label: "Applications",
+      data: trends.map((t) => t.applications),
+      borderColor: "#4F46E5", // indigo-600
+      backgroundColor: (context) => {
+        const ctx = context.chart.ctx;
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, "rgba(79, 70, 229, 0.3)");
+        gradient.addColorStop(1, "rgba(79, 70, 229, 0)");
+        return gradient;
+      },
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: "#ffffff",
+      pointBorderColor: "#4F46E5",
+      pointBorderWidth: 2,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+    }],
+  };
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1e293b",
+        padding: 12,
+        titleFont: { size: 13, weight: 'bold' },
+        bodyFont: { size: 12 },
+        cornerRadius: 12,
+        displayColors: false,
       }
-    };
-    socket.on("recruiter:update", handleAnalyticsUpdate);
-    return () => socket.off("recruiter:update", handleAnalyticsUpdate);
-  }, [socket]);
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#64748b' } },
+      y: { border: { dash: [4, 4], display: false }, grid: { color: "#f1f5f9" }, ticks: { stepSize: 1, color: '#64748b' } },
+    }
+  };
 
-  if (loading)
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" py={8}>
-        <CircularProgress />
-      </Box>
-    );
+  const doughnutData = {
+    labels: ["Shortlisted", "Rejected", "Hired", "Pending"],
+    datasets: [{
+      data: [counts.shortlisted, counts.rejected, counts.hired, counts.applied],
+      backgroundColor: ["#3b82f6", "#ef4444", "#10b981", "#cbd5e1"],
+      borderWidth: 0,
+      hoverOffset: 4
+    }]
+  };
 
-  if (error)
-    return (
-      <Box display="flex" justifyContent="center" py={8}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
-
-  if (!analytics)
-    return (
-      <Typography textAlign="center" color="text.secondary" mt={4}>
-        No analytics data found.
-      </Typography>
-    );
-
-  const statusCards = [
-    { label: "Pending", value: analytics.pending || 0, color: "#ff9800" },
-    { label: "Shortlisted", value: analytics.shortlisted || 0, color: "#4caf50" },
-    { label: "Rejected", value: analytics.rejected || 0, color: "#f44336" },
-    { label: "Hired", value: analytics.hired || 0, color: "#2196f3" },
-  ];
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "80%",
+    plugins: {
+      legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, padding: 20, font: { weight: 'bold' } } }
+    }
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 25 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Typography
-        variant="h4"
-        fontWeight={800}
-        gutterBottom
-        sx={{
-          background: "linear-gradient(90deg, #6c63ff, #ff4081)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        📈 Recruiter Analytics Dashboard
-      </Typography>
-      <Typography color="text.secondary" mb={4}>
-        Gain insights into your hiring process and candidate performance trends.
-      </Typography>
+    <div className="max-w-7xl mx-auto p-6 pb-20">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
+          <span className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl"><Activity size={28} /></span>
+          Analytics Hub
+        </h1>
+        <p className="text-slate-500 font-medium mt-2 ml-1">
+          Real-time insights into your hiring pipeline and job performance.
+        </p>
+      </motion.div>
 
-      {/* ====== STATUS CARDS ====== */}
-      <Grid container spacing={3}>
-        {statusCards.map((card, i) => (
-          <Grid item xs={12} sm={6} md={3} key={i}>
-            <Card
-              sx={{
-                borderRadius: 3,
-                background: `linear-gradient(135deg, ${card.color}aa, ${card.color})`,
-                color: "#fff",
-                boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
-              }}
-            >
-              <CardContent>
-                <Typography variant="subtitle2">{card.label}</Typography>
-                <Typography variant="h4" fontWeight={800}>
-                  {card.value}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-10 -mt-10 group-hover:scale-110 transition-transform"></div>
+           <div className="relative z-10">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Total Jobs Posted</p>
+              <h3 className="text-4xl font-black text-slate-800">{totalJobs}</h3>
+              <p className="text-xs text-blue-600 font-bold mt-2 flex items-center gap-1"><Briefcase size={12} /> Active Listings</p>
+           </div>
+           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl relative z-10"><Briefcase size={24} /></div>
+        </div>
 
-      <Divider sx={{ my: 5 }} />
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-10 -mt-10 group-hover:scale-110 transition-transform"></div>
+           <div className="relative z-10">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Total Applicants</p>
+              <h3 className="text-4xl font-black text-slate-800">{totalApplications}</h3>
+              <p className="text-xs text-indigo-600 font-bold mt-2 flex items-center gap-1"><Users size={12} /> Across all jobs</p>
+           </div>
+           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl relative z-10"><Users size={24} /></div>
+        </div>
 
-      {/* ====== APPLICATION TRENDS ====== */}
-      <Typography variant="h6" fontWeight={700} mb={2}>
-        📊 Applications Over Time (Last 30 Days)
-      </Typography>
-      {analytics.trends?.length ? (
-        <Card sx={{ p: 2, borderRadius: 3, background: "rgba(255,255,255,0.9)" }}>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={analytics.trends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="applications" stroke="#6c63ff" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-      ) : (
-        <Typography color="text.secondary" textAlign="center">
-          No application trends found.
-        </Typography>
-      )}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start justify-between relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-green-50/50 rounded-full -mr-10 -mt-10 group-hover:scale-110 transition-transform"></div>
+           <div className="relative z-10">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Candidates Hired</p>
+              <h3 className="text-4xl font-black text-slate-800">{hiredCount}</h3>
+              <p className="text-xs text-green-600 font-bold mt-2 flex items-center gap-1"><CheckCircle size={12} /> Filled Positions</p>
+           </div>
+           <div className="p-3 bg-green-50 text-green-600 rounded-xl relative z-10"><CheckCircle size={24} /></div>
+        </div>
+      </div>
 
-      <Divider sx={{ my: 5 }} />
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Trend Chart (Line) */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp size={24} className="text-indigo-600" />
+                Application Growth
+              </h3>
+              <p className="text-sm text-slate-500 font-medium">Activity over last 7 days</p>
+            </div>
+            <div className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold uppercase">Weekly</div>
+          </div>
+          <div className="h-[350px] w-full">
+             <Line data={lineData} options={lineOptions} />
+          </div>
+        </div>
 
-      {/* ====== TOP JOBS ====== */}
-      <Typography variant="h6" fontWeight={700} mb={2}>
-        🏆 Top 5 Most Applied Jobs
-      </Typography>
-      {analytics.topJobs?.length ? (
-        <Card sx={{ p: 2, borderRadius: 3, background: "rgba(255,255,255,0.95)" }}>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analytics.topJobs}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="title" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="applications" fill="#6c63ff" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      ) : (
-        <Typography color="text.secondary" textAlign="center">
-          No job data available.
-        </Typography>
-      )}
-    </motion.div>
+        {/* Status Breakdown (Doughnut) */}
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-2">
+            <PieChart size={24} className="text-blue-600" />
+            Pipeline Status
+          </h3>
+          <p className="text-sm text-slate-500 font-medium mb-8">Current candidate distribution</p>
+          
+          <div className="flex-1 flex items-center justify-center relative min-h-[250px]">
+            <Doughnut data={doughnutData} options={doughnutOptions} />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
+               <div className="text-center">
+                 <p className="text-4xl font-black text-slate-800">{totalApplications}</p>
+                 <p className="text-xs text-slate-400 font-extrabold uppercase tracking-widest mt-1">Total</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

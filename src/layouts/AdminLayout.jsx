@@ -1,271 +1,152 @@
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Avatar,
-  Typography,
-  Divider,
-  IconButton,
-  Tooltip,
-  useMediaQuery,
-} from "@mui/material";
-import {
-  Dashboard,
-  People,
-  Chat,
-  ListAlt,
-  Logout,
-  MailOutline,
-  Send,
-  Menu,
-  ChevronLeft,
-} from "@mui/icons-material";
-import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "@mui/material/styles";
+import { motion } from "framer-motion";
+import { 
+  LayoutDashboard, 
+  Briefcase, 
+  Users, 
+  MessageSquare, 
+  FileText, 
+  LogOut, 
+  Menu, 
+  ChevronLeft 
+} from "lucide-react";
 
-const drawerWidth = 250;
-const collapsedWidth = 80;
+const SIDEBAR_WIDTH = 260;
+const SIDEBAR_COLLAPSED = 80;
 
 export default function AdminLayout() {
-  const { role, user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, role, logout } = useAuth();
   const location = useLocation();
-  const theme = useTheme();
+  const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down("lg"));
-
-  const toggleSidebar = useCallback(() => {
-    setCollapsed((prev) => !prev);
-  }, []);
-
+  
+  // Responsive check
   useEffect(() => {
-    setCollapsed(isSmallScreen);
-  }, [isSmallScreen]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        toggleSidebar();
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setCollapsed(true);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSidebar]);
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Init
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const menuItems = [
-    { label: "Dashboard", icon: <Dashboard />, path: "/admin" },
-    { label: "Users", icon: <People />, path: "/admin/users" },
-    { label: "Messages", icon: <Chat />, path: "/admin/messages" },
-    { label: "Audit Logs", icon: <ListAlt />, path: "/admin/logs" },
-    { label: "Mailbox", icon: <MailOutline />, path: "/admin/mailbox" },
-    { label: "Send Mail", icon: <Send />, path: "/admin/send-mail" },
+    { label: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/admin" },
+    { label: "Job Approvals", icon: <Briefcase size={20} />, path: "/admin/jobs" },
+    { label: "Recruiter Approvals", icon: <Users size={20} />, path: "/admin/recruiter-approvals" },
+    { label: "Mentor Approvals", icon: <Users size={20} />, path: "/admin/mentor-approvals" },
+    { label: "Manage Events", icon: <Briefcase size={20} />, path: "/admin/events" },
+    { label: "Users", icon: <Users size={20} />, path: "/admin/users" },
+    { label: "Messages", icon: <MessageSquare size={20} />, path: "/admin/messages" },
+    { label: "Audit Logs", icon: <FileText size={20} />, path: "/admin/logs" },
   ];
 
-  const isActive = (path) => location.pathname === path;
-  const expanded = hovered || !collapsed;
-
   return (
-    <Box sx={{ display: "flex" }}>
-      {/* Sidebar */}
-      <motion.div
-        animate={{ width: expanded ? drawerWidth : collapsedWidth }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          height: "100vh",
-          background:
-            "linear-gradient(180deg, rgba(17,24,39,0.96), rgba(31,41,55,0.9))",
-          backdropFilter: "blur(18px)",
-          color: "#fff",
-          boxShadow: "6px 0 25px rgba(0,0,0,0.25)",
-          borderRight: "1px solid rgba(255,255,255,0.08)",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          position: "fixed",
-          zIndex: 1200,
-        }}
-      >
-        {/* Header */}
-        <Box sx={{ textAlign: "center", p: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: expanded ? "space-between" : "center",
-              px: 1,
-            }}
-          >
-            {expanded && (
-              <Typography
-                variant="h6"
-                fontWeight="bold"
-                sx={{
-                  background:
-                    "linear-gradient(135deg, #a78bfa 0%, #ec4899 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                OneStop Hub
-              </Typography>
-            )}
-            <Tooltip title="Toggle Sidebar (Ctrl+B)">
-              <IconButton onClick={toggleSidebar} sx={{ color: "#fff" }}>
-                {expanded ? <ChevronLeft /> : <Menu />}
-              </IconButton>
-            </Tooltip>
-          </Box>
+    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300">
+       {/* Background Gradients */}
+       <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-100 dark:bg-blue-600/5 rounded-full blur-[100px] transition-colors duration-500" />
+          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-100 dark:bg-purple-600/5 rounded-full blur-[100px] transition-colors duration-500" />
+       </div>
 
-          <AnimatePresence>
-            {expanded && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <Avatar
-                  src={user?.avatar || ""}
-                  alt={user?.name}
-                  sx={{
-                    width: 70,
-                    height: 70,
-                    mx: "auto",
-                    mt: 1,
-                    border: "2px solid rgba(255,255,255,0.25)",
-                    boxShadow: "0 4px 20px rgba(255,255,255,0.15)",
-                  }}
-                >
-                  {!user?.avatar && user?.name?.charAt(0)}
-                </Avatar>
-                <Typography variant="subtitle1" sx={{ mt: 1, fontWeight: 600 }}>
-                  {user?.name}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "rgba(255,255,255,0.6)",
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {role}
-                </Typography>
-              </motion.div>
-            )}
-          </AnimatePresence>
+       {/* Sidebar */}
+       <motion.aside 
+          initial={false}
+          animate={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH }}
+          className={`fixed left-0 top-0 h-screen bg-white dark:bg-[#0f1014] border-r border-slate-200 dark:border-white/5 z-50 flex flex-col shadow-2xl shadow-slate-200/50 dark:shadow-[4px_0_24px_rgba(0,0,0,0.3)] transition-all duration-300 ease-in-out`}
+       >
+          {/* Header */}
+          <div className={`h-20 flex items-center ${collapsed ? 'justify-center' : 'justify-between px-6'} border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f1014]`}>
+             {!collapsed && (
+                <Link to="/" className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 group">
+                   <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-105 transition-transform"><span className="text-lg">🎓</span></div>
+                   OneStop
+                </Link>
+             )}
+             <button onClick={() => setCollapsed(!collapsed)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg text-slate-400 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+             </button>
+          </div>
 
-          <Divider
-            sx={{
-              mt: 2,
-              mx: 1,
-              borderColor: "rgba(255,255,255,0.15)",
-            }}
-          />
-        </Box>
+          {/* User Info */}
+          <div className={`p-6 flex flex-col items-center ${collapsed ? 'gap-2' : 'gap-4'} border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0f1014]`}>
+             <div className="relative group">
+                <div className={`rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 ${collapsed ? 'w-10 h-10' : 'w-16 h-16'} transition-all group-hover:border-blue-500`}>
+                   {user?.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover"/>
+                   ) : (
+                      <div className="w-full h-full bg-white dark:bg-[#1a1a1a] flex items-center justify-center font-bold text-slate-500 dark:text-slate-400">{user?.name?.[0]}</div>
+                   )}
+                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0f1014] rounded-full shadow-sm"></div>
+             </div>
+             {!collapsed && (
+                <div className="text-center">
+                   <h3 className="font-bold text-slate-900 dark:text-white leading-tight mb-1">{user?.name}</h3>
+                   <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest rounded-full border border-blue-200 dark:border-blue-500/20">{role}</span>
+                </div>
+             )}
+          </div>
 
-        {/* Menu */}
-        <Box sx={{ flexGrow: 1, px: 1 }}>
-          <List>
-            {menuItems.map((item) => (
-              <ListItem key={item.label} disablePadding>
-                <Tooltip title={!expanded ? item.label : ""} placement="right">
-                  <ListItemButton
-                    selected={isActive(item.path)}
-                    onClick={() => navigate(item.path)}
-                    sx={{
-                      my: 0.5,
-                      borderRadius: "12px",
-                      background: isActive(item.path)
-                        ? "linear-gradient(135deg, #6366f1 0%, #ec4899 100%)"
-                        : "transparent",
-                      boxShadow: isActive(item.path)
-                        ? "0 0 15px rgba(236,72,153,0.35)"
-                        : "none",
-                      "&:hover": {
-                        background:
-                          "linear-gradient(135deg, rgba(99,102,241,0.25), rgba(236,72,153,0.25))",
-                        transform: "scale(1.03)",
-                        transition: "all 0.25s ease",
-                      },
-                    }}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        color: "#fff",
-                        minWidth: expanded ? "40px" : "0",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {item.icon}
-                    </ListItemIcon>
-                    {expanded && (
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{
-                          fontWeight: 500,
-                          fontSize: "0.93rem",
-                        }}
-                      />
-                    )}
-                  </ListItemButton>
-                </Tooltip>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
+          {/* Menu */}
+          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
+             {menuItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                   <Link 
+                      key={item.path} 
+                      to={item.path}
+                      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative mb-1
+                         ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 dark:shadow-blue-600/20' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}
+                         ${collapsed ? 'justify-center' : ''}
+                      `}
+                   >
+                      <div className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white'}`}>
+                         {item.icon}
+                      </div>
+                      
+                      {!collapsed && (
+                         <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                      )}
 
-        {/* Logout */}
-        <Box
-          sx={{
-            py: 2,
-            textAlign: "center",
-            borderTop: "1px solid rgba(255,255,255,0.1)",
-          }}
-        >
-          <Tooltip title="Logout" arrow placement="right">
-            <IconButton
-              onClick={logout}
-              sx={{
-                color: "#ff4d6d",
-                background: "rgba(255,255,255,0.1)",
-                borderRadius: "12px",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.25)",
-                  transform: "scale(1.1)",
-                },
-                transition: "all 0.25s ease",
-              }}
-            >
-              <Logout />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </motion.div>
+                      {/* Tooltip for collapsed state */}
+                      {collapsed && (
+                         <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap">
+                            {item.label}
+                         </div>
+                      )}
+                   </Link>
+                );
+             })}
+          </nav>
 
-      {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: { xs: 2, md: 4 },
-          background: "linear-gradient(135deg, #f9f9ff 0%, #eef1ff 100%)",
-          minHeight: "100vh",
-          ml: expanded ? `${drawerWidth}px` : `${collapsedWidth}px`,
-          transition: "margin 0.4s ease",
-        }}
-      >
-        <Outlet />
-      </Box>
-    </Box>
+          {/* Footer */}
+          <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f1014]">
+             <button 
+                onClick={logout} 
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all ${collapsed ? 'justify-center' : ''}`}
+             >
+                <LogOut size={20} />
+                {!collapsed && <span className="font-bold text-sm">Logout</span>}
+             </button>
+          </div>
+       </motion.aside>
+
+       {/* Main Content */}
+       <main 
+          className="flex-1 transition-all duration-300 ease-in-out min-h-screen relative z-10"
+          style={{ marginLeft: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH }}
+       >
+          <div className="p-0">
+             <Outlet />
+          </div>
+       </main>
+
+    </div>
   );
 }
