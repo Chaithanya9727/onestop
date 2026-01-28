@@ -10,6 +10,8 @@ export default {
       // 1. FONTS
       fontFamily: {
         sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
       },
       // 2. COLORS
       colors: {

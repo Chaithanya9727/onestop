@@ -96,6 +96,8 @@ import ResumeAnalyzer from "./pages/ResumeAnalyzer.jsx";
 import Community from "./pages/Community.jsx";
 import MockInterview from "./pages/MockInterview.jsx";
 import TeamFinder from "./pages/TeamFinder.jsx";
+import CandidateProfile from "./pages/CandidateProfile.jsx";
+import Practice from "./pages/Practice.jsx";
 
 export default function App() {
   const location = useLocation();
@@ -138,7 +140,7 @@ export default function App() {
                   {/* 🌍 PUBLIC ROUTES */}
                   <Route path="/" element={<Home />} />
                   <Route path="/contact" element={<Contact />} />
-                  
+
                   {/* 🏆 COMPETITIONS & OPPORTUNITIES */}
                   <Route path="/contests" element={<ProtectedRoute><Contests /></ProtectedRoute>} />
                   <Route path="/hackathons" element={<ProtectedRoute><Hackathons /></ProtectedRoute>} />
@@ -160,7 +162,7 @@ export default function App() {
                   {/* 🔐 PASSWORD RESET */}
                   <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
                   <Route path="/reset-password/:token" element={<GuestRoute><ResetPassword /></GuestRoute>} />
-                  
+
                   {/* 🤖 AI TOOLS */}
                   <Route path="/resume-shield" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
                   <Route path="/mock-interview" element={<ProtectedRoute><MockInterview /></ProtectedRoute>} />
@@ -187,9 +189,9 @@ export default function App() {
                   <Route path="/admin/events" element={<ProtectedRoute roles={['admin', 'mentor', 'superadmin', 'recruiter']}><AdminEventManager /></ProtectedRoute>} />
                   <Route path="/events/:id/manage-quiz" element={<ProtectedRoute roles={['admin', 'mentor', 'superadmin', 'recruiter']}><ManageQuiz /></ProtectedRoute>} />
                   <Route path="/events/:id/edit" element={<ProtectedRoute roles={['admin', 'mentor', 'superadmin', 'recruiter']}><EditEvent /></ProtectedRoute>} />
-                  <Route path="/admin/events/registrations/:id" element={<ProtectedRoute roles={["admin","superadmin", "recruiter"]}><EventRegistrations /></ProtectedRoute>} />
-                  <Route path="/admin/events/judge/:id" element={<ProtectedRoute roles={["admin","superadmin", "recruiter"]}><JudgePanel /></ProtectedRoute>} />
-                  <Route path="/admin/create-event" element={<ProtectedRoute roles={["admin","superadmin", "recruiter"]}><CreateEvent /></ProtectedRoute>} />
+                  <Route path="/admin/events/registrations/:id" element={<ProtectedRoute roles={["admin", "superadmin", "recruiter"]}><EventRegistrations /></ProtectedRoute>} />
+                  <Route path="/admin/events/judge/:id" element={<ProtectedRoute roles={["admin", "superadmin", "recruiter"]}><JudgePanel /></ProtectedRoute>} />
+                  <Route path="/admin/create-event" element={<ProtectedRoute roles={["admin", "superadmin", "recruiter"]}><CreateEvent /></ProtectedRoute>} />
 
                   {/* 🌟 MENTOR */}
                   <Route path="/mentors" element={<ProtectedRoute><FindMentor /></ProtectedRoute>} />
@@ -242,6 +244,8 @@ export default function App() {
                   <Route path="/jobs" element={<JobList />} />
                   <Route path="/jobs/:id" element={<ProtectedRoute roles={["candidate"]}><JobDetails /></ProtectedRoute>} />
                   <Route path="/candidate/applications" element={<ProtectedRoute roles={["candidate"]}><CandidateApplications /></ProtectedRoute>} />
+                  <Route path="/candidate/profile" element={<ProtectedRoute roles={["candidate"]}><CandidateProfile /></ProtectedRoute>} />
+                  <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
 
                   {/* ❌ 404 */}
                   <Route path="*" element={<div style={{ textAlign: "center", marginTop: 80 }}>404 — Page Not Found</div>} />

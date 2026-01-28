@@ -6,7 +6,7 @@ import {
     Trophy, Briefcase, Users, Code2, Shield, Zap,
     Rocket, Terminal, Brain, GraduationCap, Globe,
     CheckCircle2, ArrowRight, Sparkles, Target,
-    ChevronRight, Play
+    ChevronRight, Play, Search
 } from 'lucide-react';
 import { TracingBeam } from '../components/ui/TracingBeam';
 
@@ -84,35 +84,52 @@ const Hero = () => {
                     </span>
                 </motion.div>
 
-                <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-slate-900 dark:text-white mb-8 leading-[0.9]">
+                <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-black tracking-tighter text-slate-900 dark:text-white mb-8 leading-[0.9]">
                     Dream.<br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">
                         Build.
                     </span>{' '}
                     Achieve.
                 </h1>
 
-                <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
-                    The all-in-one ecosystem for people. From learning your first line of code to landing your dream job at your favorite company.
+                <p className="text-xl md:text-2xl font-body text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-10 font-medium leading-relaxed">
+                    The all-in-one ecosystem for developers. Learn, compete, and get hired by world-class companies.
                 </p>
+
+                {/* Unstop-style Search Bar */}
+                <div className="max-w-2xl mx-auto mb-12 relative z-30">
+                    <div className="bg-white dark:bg-white/10 backdrop-blur-md border border-slate-200 dark:border-white/10 p-2 rounded-full shadow-2xl flex items-center transition-all hover:shadow-indigo-500/20 hover:border-indigo-500/30">
+                        <div className="pl-6 text-slate-400">
+                            <Search size={24} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search hackathons, jobs, or mentors..."
+                            className="w-full bg-transparent border-none outline-none px-4 py-3 text-lg font-bold text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 font-body"
+                        />
+                        <button
+                            onClick={() => navigate('/events')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 py-3 font-bold text-base transition-all active:scale-95 shadow-lg shadow-blue-600/30"
+                        >
+                            Search
+                        </button>
+                    </div>
+                    <div className="flex justify-center gap-4 mt-4 text-sm font-bold text-slate-500 dark:text-slate-400">
+                        <span>Trending:</span>
+                        <span className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">#Hackathons</span>
+                        <span className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">#Internships</span>
+                        <span className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">#DataScience</span>
+                    </div>
+                </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate('/events')}
-                        className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold text-lg flex items-center gap-2 shadow-xl shadow-indigo-500/20"
+                        className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold font-display text-lg flex items-center gap-2 shadow-xl shadow-indigo-500/20"
                     >
                         Start Competing <ArrowRight size={20} />
-                    </motion.button>
-
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => navigate('/mentors')}
-                        className="px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-2xl font-bold text-lg flex items-center gap-2 hover:bg-slate-50 transition-colors"
-                    >
-                        Find a Mentor
                     </motion.button>
                 </div>
             </div>
@@ -133,48 +150,55 @@ const EcosystemGrid = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 grid-rows-auto gap-6 h-auto">
 
                 {/* 1. COMPETE (Large) */}
-                <BentoCard className="md:col-span-2 md:row-span-2 min-h-[400px] relative group cursor-pointer" onClick={() => navigate('/events')}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-700 opacity-90 transition-opacity group-hover:opacity-100" />
+                <BentoCard className="md:col-span-2 md:row-span-2 min-h-[400px] relative group cursor-pointer border-0 shadow-xl shadow-blue-900/5 overflow-hidden" onClick={() => navigate('/events')}>
+                    <div className="absolute inset-0 bg-white dark:bg-slate-900 z-0"></div>
+                    {/* Image Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 to-indigo-900/90 z-10 opacity-100 transition-opacity" />
                     <img
                         src="https://images.unsplash.com/photo-1504384308090-c54be3852d33?auto=format&fit=crop&q=80"
                         alt="Hackathon"
-                        className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50 group-hover:scale-105 transition-transform duration-700"
+                        className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50 group-hover:scale-105 transition-transform duration-700 z-0"
                     />
-                    <div className="relative z-10 p-8 h-full flex flex-col justify-between">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-4">
-                            <Trophy size={28} />
+                    <div className="relative z-20 p-8 h-full flex flex-col justify-between text-white">
+                        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white mb-4 border border-white/20 shadow-lg">
+                            <Trophy size={32} />
                         </div>
                         <div>
-                            <h3 className="text-3xl font-black text-white mb-2">Compete & Win</h3>
-                            <p className="text-indigo-100 font-medium text-lg leading-relaxed">
+                            <h3 className="text-4xl font-display font-black text-white mb-3 tracking-tight">Compete & Win</h3>
+                            <p className="text-blue-100 font-body font-medium text-lg leading-relaxed max-w-md">
                                 Join global hackathons, coding contests, and algorithm battles. Win cash prizes and recognition.
                             </p>
-                            <div className="mt-6 flex gap-2">
-                                <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold text-white uppercase tracking-wider">Live Now &rarr;</span>
+                            <div className="mt-8 flex gap-2">
+                                <span className="px-4 py-2 bg-white text-blue-900 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                                    Explore Contests <ArrowRight size={12} />
+                                </span>
                             </div>
                         </div>
                     </div>
                 </BentoCard>
 
                 {/* 2. JOBS (Tall) */}
-                <BentoCard className="md:col-span-1 md:row-span-2 min-h-[400px] bg-slate-100 dark:bg-slate-800 relative group cursor-pointer" onClick={() => navigate('/jobs')}>
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="p-8 h-full flex flex-col">
-                        <div className="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/30">
-                            <Briefcase size={24} />
+                {/* 2. JOBS (Tall) */}
+                <BentoCard className="md:col-span-1 md:row-span-2 min-h-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 relative group cursor-pointer shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden" onClick={() => navigate('/jobs')}>
+                    <div className="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity">
+                        <ArrowRight className="-rotate-45 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                    </div>
+                    <div className="p-8 h-full flex flex-col relative z-10">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6 border border-blue-100 dark:border-blue-500/20">
+                            <Briefcase size={28} />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Direct Hiring</h3>
-                        <p className="text-slate-500 dark:text-slate-400 mb-8 flex-grow">
+                        <h3 className="text-2xl font-display font-bold text-slate-900 dark:text-white mb-2">Find a Job</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8 flex-grow font-body text-sm leading-relaxed">
                             Apply to 500+ top companies with a single profile. No spam, just interviews.
                         </p>
 
                         {/* Decorative Resume List */}
                         <div className="space-y-3">
                             {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-white/5">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800" />
-                                    <div className="h-2 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
-                                    <div className="ml-auto text-green-500 text-xs font-bold">Matched</div>
+                                <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700" />
+                                    <div className="h-2 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                                    <div className="ml-auto text-green-600 text-[10px] font-bold uppercase bg-green-50 dark:bg-green-500/10 px-2 py-1 rounded">Matched</div>
                                 </div>
                             ))}
                         </div>
@@ -182,62 +206,69 @@ const EcosystemGrid = () => {
                 </BentoCard>
 
                 {/* 3. MENTORSHIP (Standard) */}
-                <BentoCard className="min-h-[200px] cursor-pointer group" onClick={() => navigate('/mentors')}>
-                    <div className="p-6 h-full flex flex-col justify-between hover:bg-orange-50 dark:hover:bg-white/5 transition-colors">
+                {/* 3. MENTORSHIP (Standard) */}
+                <BentoCard className="min-h-[220px] cursor-pointer group bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 shadow-lg shadow-slate-200/50 dark:shadow-none" onClick={() => navigate('/mentors')}>
+                    <div className="p-6 h-full flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                         <div className="flex justify-between items-start">
-                            <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                                <Users size={20} />
+                            <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center border border-orange-100 dark:border-orange-500/20">
+                                <Users size={24} />
                             </div>
-                            <ArrowRight className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+                            <ArrowRight className="text-slate-300 group-hover:text-orange-500 transition-colors -rotate-45 group-hover:rotate-0" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Mentorship</h3>
-                            <p className="text-sm text-slate-500">1:1 with FAANG engineers.</p>
+                            <h3 className="text-xl font-display font-bold text-slate-900 dark:text-white mb-1">Mentorship</h3>
+                            <p className="text-sm font-medium text-slate-500">1:1 guidance from FAANG engineers.</p>
                         </div>
                     </div>
                 </BentoCard>
 
                 {/* 4. LEARNING (Standard) */}
-                <BentoCard className="min-h-[200px] cursor-pointer group" onClick={() => navigate('/resources')}>
-                    <div className="p-6 h-full flex flex-col justify-between hover:bg-green-50 dark:hover:bg-white/5 transition-colors">
+                <BentoCard className="min-h-[220px] cursor-pointer group bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 shadow-lg shadow-slate-200/50 dark:shadow-none" onClick={() => navigate('/resources')}>
+                    <div className="p-6 h-full flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                         <div className="flex justify-between items-start">
-                            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 flex items-center justify-center">
-                                <GraduationCap size={20} />
+                            <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center border border-green-100 dark:border-green-500/20">
+                                <GraduationCap size={24} />
                             </div>
-                            <ArrowRight className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
+                            <ArrowRight className="text-slate-300 group-hover:text-green-500 transition-colors -rotate-45 group-hover:rotate-0" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Learning Paths</h3>
-                            <p className="text-sm text-slate-500">Structured roadmaps.</p>
+                            <h3 className="text-xl font-display font-bold text-slate-900 dark:text-white mb-1">Practice</h3>
+                            <p className="text-sm font-medium text-slate-500">Solve problems & learn concepts.</p>
                         </div>
                     </div>
                 </BentoCard>
 
                 {/* 5. RESUME SHIELD (Wide) */}
-                <BentoCard className="md:col-span-2 cursor-pointer group relative overflow-hidden" onClick={() => navigate('/resume-shield')}>
-                    <div className="absolute inset-0 bg-slate-900" />
-                    <div className="relative z-10 p-8 flex items-center justify-between">
+                {/* 5. RESUME SHIELD (Wide) */}
+                <BentoCard className="md:col-span-2 cursor-pointer group relative overflow-hidden border-0 bg-slate-900" onClick={() => navigate('/resume-shield')}>
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-soft-light"></div>
+                    <div className="relative z-10 p-8 flex items-center justify-between h-full">
                         <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <Shield className="text-indigo-400" size={24} />
-                                <span className="text-indigo-400 font-bold uppercase tracking-wider text-xs">AI Powered</span>
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="p-1 px-2 rounded bg-white/10 text-indigo-300 font-bold uppercase tracking-wider text-[10px]">AI Powered</div>
                             </div>
-                            <h3 className="text-2xl font-bold text-white mb-2">Resume Shield</h3>
-                            <p className="text-slate-400 max-w-xs">Score your resume against millions of job descriptions.</p>
+                            <h3 className="text-3xl font-display font-black text-white mb-2">Resume Shield</h3>
+                            <p className="text-slate-400 max-w-xs font-medium text-sm">Analyze your resume score before applying.</p>
                         </div>
-                        <div className="hidden sm:flex">
-                            <div className="text-5xl font-black text-green-400">98<span className="text-2xl">%</span></div>
+                        <div className="hidden sm:flex items-center justify-center w-24 h-24 rounded-full border-4 border-green-500/30 text-green-400 bg-green-500/10 backdrop-blur-md">
+                            <div className="text-3xl font-black">98<span className="text-lg">%</span></div>
                         </div>
                     </div>
                 </BentoCard>
 
                 {/* 6. COMMUNITY (Wide) */}
-                <BentoCard className="md:col-span-2 cursor-pointer group bg-gradient-to-r from-pink-500 to-rose-500" onClick={() => navigate('/community')}>
+                {/* 6. COMMUNITY (Wide) */}
+                <BentoCard className="md:col-span-2 cursor-pointer group bg-gradient-to-r from-pink-600 to-rose-600 border-0" onClick={() => navigate('/community')}>
                     <div className="p-8 flex items-center gap-6 text-white h-full relative overflow-hidden">
-                        <Globe className="w-32 h-32 absolute -right-6 -bottom-6 opacity-20 rotate-12" />
+                        <Globe className="w-48 h-48 absolute -right-12 -bottom-12 opacity-10 rotate-12" />
                         <div className="relative z-10">
-                            <h3 className="text-2xl font-bold mb-2">Join the Community</h3>
-                            <p className="text-pink-100">Connect with 100k+ developers worldwide on Discord.</p>
+                            <h3 className="text-3xl font-display font-black mb-2">Community</h3>
+                            <p className="text-pink-100 font-medium max-w-sm">Connect with 100k+ developers. Discuss, share, and grow together.</p>
+                        </div>
+                        <div className="ml-auto relative z-10 hidden sm:block">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+                                <ArrowRight className="text-white" />
+                            </div>
                         </div>
                     </div>
                 </BentoCard>

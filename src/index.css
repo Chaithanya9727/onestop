@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-50 antialiased font-sans selection:bg-blue-300 selection:text-blue-900 transition-colors duration-300;
+    @apply bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-50 antialiased font-body selection:bg-blue-300 selection:text-blue-900 transition-colors duration-300;
   }
 
   /* Unstop-style Heading Utility */
@@ -14,7 +14,7 @@
   h4,
   h5,
   h6 {
-    @apply tracking-tight font-sans font-bold;
+    @apply tracking-tight font-display font-bold;
   }
 }
 
