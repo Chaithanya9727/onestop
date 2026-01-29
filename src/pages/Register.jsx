@@ -22,11 +22,6 @@ export default function Register() {
       password: "", confirmPassword: "", otp: "", agree: false,
    });
 
-   // 🌐 Dynamic API URL Helper
-   const IS_PROD = window.location.hostname.includes("vercel.app");
-   const API_URL = "https://onestop-server.vercel.app/api";
-   const BASE_URL = IS_PROD ? API_URL : "http://localhost:5000/api";
-
    const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
    const set = (name, val) => setForm(f => ({ ...f, [name]: val }));
 
@@ -35,7 +30,7 @@ export default function Register() {
       if (!form.email) return showToast("Enter email address", "warning");
       setLoading(true);
       try {
-         const res = await fetch(`${BASE_URL}/auth/send-verification-otp`, {
+         const res = await fetch("http://localhost:5000/api/auth/send-verification-otp", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: form.email })
          });
@@ -51,7 +46,7 @@ export default function Register() {
       if (!form.otp) return showToast("Enter OTP", "warning");
       setLoading(true);
       try {
-         const res = await fetch(`${BASE_URL}/auth/verify-verification-otp`, {
+         const res = await fetch("http://localhost:5000/api/auth/verify-verification-otp", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: form.email, otp: form.otp })
          });
@@ -76,7 +71,7 @@ export default function Register() {
             ...(role === "recruiter" && { orgName: form.orgName })
          };
 
-         const res = await fetch(`${BASE_URL}/auth/${endpoint}`, {
+         const res = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
          });

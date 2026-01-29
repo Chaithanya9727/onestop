@@ -1,8 +1,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useCallback } from "react";
 
-const IS_PROD_DOMAIN = window.location.hostname.includes("vercel.app"); // Auto-detect Vercel
-const API_BASE = import.meta.env.VITE_API_BASE_URL || (IS_PROD_DOMAIN ? "https://onestop-server.vercel.app/api" : "http://localhost:5000/api");
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 export default function useApi() {
   const { token, logout, refreshUser } = useAuth();

@@ -22,11 +22,7 @@ export default function ForgotPassword() {
   const [timer, setTimer] = useState(0);
 
   // ✅ Local backend URL
-  // 🌐 Dynamic API URL Helper
-  const IS_PROD = window.location.hostname.includes("vercel.app");
-  const API_BASE = IS_PROD
-    ? "https://onestop-server.vercel.app/api/auth"
-    : "http://localhost:5000/api/auth";
+  const API_BASE = "http://localhost:5000/api/auth";
 
   // Countdown timer for "Resend OTP"
   useEffect(() => {

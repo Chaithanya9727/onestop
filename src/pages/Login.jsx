@@ -26,11 +26,6 @@ export default function Login() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // 🌐 Dynamic API URL Helper
-  const IS_PROD = window.location.hostname.includes("vercel.app");
-  const API_URL = "https://onestop-server.vercel.app/api"; // Force prod URL if on Vercel to be safe
-  const BASE_URL = IS_PROD ? API_URL : "http://localhost:5000/api";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -38,7 +33,7 @@ export default function Login() {
     setMsg("");
 
     try {
-      const res = await fetch(`${BASE_URL}/auth/login`, {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -65,7 +60,7 @@ export default function Login() {
   };
 
   const handleOAuth = (provider) => {
-    window.location.href = `${BASE_URL}/auth/${provider}`;
+    window.location.href = `http://localhost:5000/api/auth/${provider}`;
   };
 
   return (

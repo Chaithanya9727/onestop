@@ -21,9 +21,7 @@ export function SocketProvider({ children }) {
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
 
   // Backend URL
-  // Backend URL - Auto detect Vercel
-  const IS_PROD_DOMAIN = window.location.hostname.includes("vercel.app");
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (IS_PROD_DOMAIN ? "https://onestop-server.vercel.app" : "http://localhost:5000");
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
   /* =====================================================
      🔌 Initialize socket only when token is available

@@ -18,9 +18,7 @@ export default function VerifyOtp() {
     setMsg("");
     setErr("");
     try {
-      const IS_PROD = window.location.hostname.includes("vercel.app");
-      const API_BASE = IS_PROD ? "https://onestop-server.vercel.app/api" : "http://localhost:5000/api";
-      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+      const res = await fetch("http://localhost:5000/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp, newPassword }),

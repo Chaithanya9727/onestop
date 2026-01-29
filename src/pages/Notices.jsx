@@ -49,10 +49,7 @@ export default function Notices() {
     if (!fileObj) return null;
     const formData = new FormData();
     formData.append("file", fileObj);
-    const IS_PROD = window.location.hostname.includes("vercel.app");
-    const UPLOAD_URL = IS_PROD ? "https://onestop-server.vercel.app/api/resources/upload" : "http://localhost:5000/api/resources/upload";
-
-    const res = await fetch(UPLOAD_URL, {
+    const res = await fetch("http://localhost:5000/api/resources/upload", {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData
     });
     if (!res.ok) throw new Error("Upload failed");
