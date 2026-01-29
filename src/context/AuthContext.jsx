@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { API_BASE_URL } from "../apiConfig";
 
 const AuthContext = createContext();
 
@@ -26,7 +27,7 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/auth/me`,
+        `${API_BASE_URL}/auth/me`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

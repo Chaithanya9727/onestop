@@ -6,6 +6,7 @@ import {
    ArrowLeft, ArrowRight, CheckCircle, Mail, Lock, User, Phone, Building,
    Github, Loader, Star, Rocket, Shield, Users
 } from "lucide-react";
+import { API_BASE_URL } from "../apiConfig";
 
 export default function Register() {
    const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function Register() {
       if (!form.email) return showToast("Enter email address", "warning");
       setLoading(true);
       try {
-         const res = await fetch("http://localhost:5000/api/auth/send-verification-otp", {
+         const res = await fetch(`${API_BASE_URL}/auth/send-verification-otp`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: form.email })
          });
@@ -46,7 +47,7 @@ export default function Register() {
       if (!form.otp) return showToast("Enter OTP", "warning");
       setLoading(true);
       try {
-         const res = await fetch("http://localhost:5000/api/auth/verify-verification-otp", {
+         const res = await fetch(`${API_BASE_URL}/auth/verify-verification-otp`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: form.email, otp: form.otp })
          });
@@ -71,7 +72,7 @@ export default function Register() {
             ...(role === "recruiter" && { orgName: form.orgName })
          };
 
-         const res = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
+         const res = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
          });

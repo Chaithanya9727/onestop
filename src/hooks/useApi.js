@@ -1,7 +1,8 @@
+import { API_BASE_URL } from "../apiConfig";
 import { useAuth } from "../context/AuthContext";
 import { useCallback } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const API_BASE = API_BASE_URL;
 
 export default function useApi() {
   const { token, logout, refreshUser } = useAuth();

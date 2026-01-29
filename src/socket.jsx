@@ -7,6 +7,7 @@ import {
 } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./context/AuthContext";
+import { SOCKET_URL } from "./apiConfig";
 
 const SocketContext = createContext(null);
 
@@ -21,7 +22,7 @@ export function SocketProvider({ children }) {
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
 
   // Backend URL
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+
 
   /* =====================================================
      🔌 Initialize socket only when token is available

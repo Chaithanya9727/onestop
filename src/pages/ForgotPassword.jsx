@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../apiConfig";
 import {
   TextField,
   Button,
@@ -22,7 +23,8 @@ export default function ForgotPassword() {
   const [timer, setTimer] = useState(0);
 
   // ✅ Local backend URL
-  const API_BASE = "http://localhost:5000/api/auth";
+  // ✅ Local backend URL
+  const API_BASE = `${API_BASE_URL}/auth`;
 
   // Countdown timer for "Resend OTP"
   useEffect(() => {

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Github, ArrowRight, Loader, Star, CheckCircle } from "lucide-react";
+import { API_BASE_URL } from "../apiConfig";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function Login() {
     setMsg("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -60,7 +61,7 @@ export default function Login() {
   };
 
   const handleOAuth = (provider) => {
-    window.location.href = `http://localhost:5000/api/auth/${provider}`;
+    window.location.href = `${API_BASE_URL}/auth/${provider}`;
   };
 
   return (

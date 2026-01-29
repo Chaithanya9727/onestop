@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import useApi from "../hooks/useApi";
+import { API_BASE_URL } from "../apiConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, Pin, Trash2, Edit2, Download, Paperclip,
@@ -49,7 +50,7 @@ export default function Notices() {
     if (!fileObj) return null;
     const formData = new FormData();
     formData.append("file", fileObj);
-    const res = await fetch("http://localhost:5000/api/resources/upload", {
+    const res = await fetch(`${API_BASE_URL}/resources/upload`, {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData
     });
     if (!res.ok) throw new Error("Upload failed");
