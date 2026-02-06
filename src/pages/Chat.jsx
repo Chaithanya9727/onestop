@@ -223,7 +223,70 @@ export default function Chat() {
       setMenuOpen(null);
    };
 
-   // ... socket useEffect ...
+   // 🛰️ Real-time Socket Listeners
+   useEffect(() => {
+      if (!socket || !active) return;
+
+      const handleNewMessage = (data) => {
+         const { message } = data || {};
+         if (!message) return;
+
+         // Check if the message belongs to THIS conversation
+         if (message.conversation === active.conversationId) {
+            setMessages((prev) => {
+               // Prevent duplicates (especially if sender also gets a broadcast)
+               if (prev.find(m => m._id === message._id)) return prev;
+               return [...prev, message];
+            });
+            scrollToBottom();
+
+            // Auto-mark as seen if we are the recipient
+            if (message.to === user._id) {
+               socket.emit("message:mark", { messageId: message._id, status: "seen" });
+            }
+         }
+
+         // Update thread list with last message (optional but good UI)
+         setThreads(prev => prev.map(t =>
+            t._id === message.conversation
+               ? { ...t, lastMessage: message, updatedAt: new Date().toISOString() }
+               : t
+         ));
+      };
+
+      const handleMessageUpdate = (data) => {
+         setMessages((prev) => prev.map(m =>
+            m._id === data.messageId ? { ...m, status: data.status } : m
+         ));
+      };
+
+      const handleTyping = (data) => {
+         // Show typing only if it's from the person we are chatting with
+         if (data.conversationId === active.conversationId && data.from === active._id) {
+            setTypingUser(data.typing ? "Typing..." : null);
+         }
+      };
+
+      const handleMessageDeleted = (data) => {
+         if (data.mode === "everyone") {
+            setMessages((prev) => prev.map(m => m._id === data.messageId ? { ...m, body: "🚫 Message deleted" } : m));
+         } else if (data.mode === "me") {
+            setMessages((prev) => prev.filter(m => m._id !== data.messageId));
+         }
+      };
+
+      socket.on("message:new", handleNewMessage);
+      socket.on("message:update", handleMessageUpdate);
+      socket.on("typing", handleTyping);
+      socket.on("message:deleted", handleMessageDeleted);
+
+      return () => {
+         socket.off("message:new", handleNewMessage);
+         socket.off("message:update", handleMessageUpdate);
+         socket.off("typing", handleTyping);
+         socket.off("message:deleted", handleMessageDeleted);
+      };
+   }, [socket, active, user._id]);
 
    if (!user) return <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0a0a0a]"><Loader className="animate-spin text-blue-600" size={32} /></div>;
 

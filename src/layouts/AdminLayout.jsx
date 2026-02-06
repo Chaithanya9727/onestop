@@ -54,7 +54,7 @@ export default function AdminLayout() {
    const sidebarWidth = collapsed ? "w-[80px]" : "w-[280px]";
 
    return (
-      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0a0a] font-sans transition-colors duration-300">
+      <div className="flex h-screen bg-slate-50 dark:bg-[#0a0a0a] font-sans transition-colors duration-300 overflow-hidden">
          {/* Sidebar */}
          <aside className={`fixed inset-y-0 left-0 z-40 bg-slate-900 dark:bg-black text-white transition-all duration-300 ease-in-out flex flex-col shadow-2xl border-r border-white/5 ${sidebarWidth} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
             {/* Brand */}
@@ -118,9 +118,9 @@ export default function AdminLayout() {
          {mobileOpen && (<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 lg:hidden" onClick={() => setMobileOpen(false)}></div>)}
 
          {/* Main Content */}
-         <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" style={{ marginLeft: collapsed ? '80px' : '280px' }}>
+         <div className="flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out" style={{ marginLeft: collapsed ? '80px' : '280px' }}>
             <AdminTopbar title={navItems.find(item => item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to))?.label} />
-            <main className="flex-1 p-8 lg:p-12 overflow-x-hidden">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 dark:bg-[#0a0a0a]">
                <AnimatePresence mode="wait">
                   <motion.div key={location.pathname} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
                      <Outlet />

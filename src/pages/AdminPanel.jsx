@@ -120,7 +120,7 @@ export default function AdminPanel() {
    );
 
    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-white p-8 lg:p-12 pb-24 relative overflow-hidden transition-colors duration-300">
+      <div className="p-8 lg:p-12 pb-24 relative overflow-x-hidden transition-colors duration-300 text-slate-900 dark:text-white">
          {/* Background Gradients */}
          <div className="fixed inset-0 pointer-events-none">
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-indigo-100 dark:bg-indigo-600/5 rounded-full blur-[100px] transition-colors" />

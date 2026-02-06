@@ -125,135 +125,128 @@ export default function App() {
           {showBackgroundGlow && !isDashboardLayout && <BackgroundGlow />}
           {!isDashboardLayout && location.pathname !== "/chat" && <CareerCopilot />}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              style={{
-                height: isDashboardLayout ? "100vh" : "auto",
-                minHeight: "100vh",
-                overflow: isDashboardLayout ? "hidden" : "visible",
-                position: "relative"
-              }}
-            >
-              <PageTransition>
-                <Routes>
-                  {/* 🌍 PUBLIC ROUTES */}
-                  <Route path="/" element={<Home />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/contests" element={<Contests />} />
-                  <Route path="/hackathons" element={<Hackathons />} />
-                  <Route path="/challenges" element={<Challenges />} />
-                  <Route path="/leaderboard" element={<ProtectedRoute><GlobalLeaderboard /></ProtectedRoute>} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/opportunities/jobs" element={<Jobs />} />
-                  <Route path="/jobs/:id" element={<JobDetails />} />
-                  <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-                  <Route path="/register-recruiter" element={<GuestRoute><RegisterRecruiter /></GuestRoute>} />
-                  <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-                  <Route path="/verify-otp" element={<VerifyOtp />} />
-                  <Route path="/oauth-success" element={<OauthSuccess />} />
-                  <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
-                  <Route path="/reset-password/:token" element={<GuestRoute><ResetPassword /></GuestRoute>} />
-                  <Route path="/resume-shield" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
-                  <Route path="/mock-interview" element={<ProtectedRoute><MockInterview /></ProtectedRoute>} />
-                  <Route path="/team-finder" element={<ProtectedRoute><TeamFinder /></ProtectedRoute>} />
-                  <Route path="/community" element={<Community />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/resources" element={<Resources />} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/notices" element={<Notices />} />
-                  <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-                  <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-                  <Route path="/events" element={<EventsList />} />
-                  <Route path="/events/:id" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
-                  <Route path="/events/submit/:id" element={<ProtectedRoute><SubmitEntry /></ProtectedRoute>} />
-                  <Route path="/events/:id/leaderboard" element={<Leaderboard />} />
-                  <Route path="/events/:id/play" element={<ProtectedRoute><PlayQuiz /></ProtectedRoute>} />
-                  <Route path="/events/my/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
-                  <Route path="/events/:id/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
-                  <Route path="/mentors" element={<ProtectedRoute><FindMentor /></ProtectedRoute>} />
-                  <Route path="/mentor/:id" element={<ProtectedRoute><MentorProfilePublic /></ProtectedRoute>} />
-                  <Route path="/mentorship/my-sessions" element={<ProtectedRoute><MyMentorshipSessions /></ProtectedRoute>} />
-                  <Route path="/mentor-dashboard" element={<ProtectedRoute roles={["mentor"]}><MentorDashboard /></ProtectedRoute>} />
-                  <Route path="/apply-for-mentor" element={<ProtectedRoute roles={["candidate"]}><ApplyForMentor /></ProtectedRoute>} />
-                  <Route path="/become-mentor" element={<ProtectedRoute><BecomeMentor /></ProtectedRoute>} />
+          <div
+            style={{
+              height: isDashboardLayout ? "100vh" : "auto",
+              minHeight: "100vh",
+              overflow: isDashboardLayout ? "hidden" : "visible",
+              position: "relative"
+            }}
+          >
+            <PageTransition>
+              <Routes>
+                {/* 🌍 PUBLIC ROUTES */}
+                <Route path="/" element={<Home />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/contests" element={<Contests />} />
+                <Route path="/hackathons" element={<Hackathons />} />
+                <Route path="/challenges" element={<Challenges />} />
+                <Route path="/leaderboard" element={<ProtectedRoute><GlobalLeaderboard /></ProtectedRoute>} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/opportunities/jobs" element={<Jobs />} />
+                <Route path="/jobs/:id" element={<JobDetails />} />
+                <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+                <Route path="/register-recruiter" element={<GuestRoute><RegisterRecruiter /></GuestRoute>} />
+                <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+                <Route path="/verify-otp" element={<VerifyOtp />} />
+                <Route path="/oauth-success" element={<OauthSuccess />} />
+                <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+                <Route path="/reset-password/:token" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+                <Route path="/resume-shield" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
+                <Route path="/mock-interview" element={<ProtectedRoute><MockInterview /></ProtectedRoute>} />
+                <Route path="/team-finder" element={<ProtectedRoute><TeamFinder /></ProtectedRoute>} />
+                <Route path="/community" element={<Community />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/resources" element={<Resources />} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/notices" element={<Notices />} />
+                <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+                <Route path="/events" element={<EventsList />} />
+                <Route path="/events/:id" element={<ProtectedRoute><EventDetails /></ProtectedRoute>} />
+                <Route path="/events/submit/:id" element={<ProtectedRoute><SubmitEntry /></ProtectedRoute>} />
+                <Route path="/events/:id/leaderboard" element={<Leaderboard />} />
+                <Route path="/events/:id/play" element={<ProtectedRoute><PlayQuiz /></ProtectedRoute>} />
+                <Route path="/events/my/registrations" element={<ProtectedRoute><MyRegistrations /></ProtectedRoute>} />
+                <Route path="/events/:id/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
+                <Route path="/mentors" element={<ProtectedRoute><FindMentor /></ProtectedRoute>} />
+                <Route path="/mentor/:id" element={<ProtectedRoute><MentorProfilePublic /></ProtectedRoute>} />
+                <Route path="/mentorship/my-sessions" element={<ProtectedRoute><MyMentorshipSessions /></ProtectedRoute>} />
+                <Route path="/mentor-dashboard" element={<ProtectedRoute roles={["mentor"]}><MentorDashboard /></ProtectedRoute>} />
+                <Route path="/apply-for-mentor" element={<ProtectedRoute roles={["candidate"]}><ApplyForMentor /></ProtectedRoute>} />
+                <Route path="/become-mentor" element={<ProtectedRoute><BecomeMentor /></ProtectedRoute>} />
 
-                  {/* 🧩 RECRUITER PANEL */}
-                  <Route
-                    path="/rpanel"
-                    element={
-                      <ProtectedRoute roles={["recruiter"]}>
-                        <RecruiterLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="overview" element={<RecruiterOverview />} />
-                    <Route path="post-job" element={<PostJob />} />
-                    <Route path="jobs" element={<RecruiterJobs />} />
-                    <Route path="jobs/:id/applications" element={<RecruiterApplications />} />
-                    <Route path="applications" element={<RecruiterApplications />} />
-                    <Route path="events" element={<EventsList />} />
-                    <Route path="analytics" element={<RecruiterAnalytics />} />
-                    <Route path="settings" element={<RecruiterSettings />} />
-                  </Route>
+                {/* 🧩 RECRUITER PANEL */}
+                <Route
+                  path="/rpanel"
+                  element={
+                    <ProtectedRoute roles={["recruiter"]}>
+                      <RecruiterLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="overview" element={<RecruiterOverview />} />
+                  <Route path="post-job" element={<PostJob />} />
+                  <Route path="jobs" element={<RecruiterJobs />} />
+                  <Route path="jobs/:id/applications" element={<RecruiterApplications />} />
+                  <Route path="applications" element={<RecruiterApplications />} />
+                  <Route path="events" element={<EventsList />} />
+                  <Route path="analytics" element={<RecruiterAnalytics />} />
+                  <Route path="settings" element={<RecruiterSettings />} />
+                </Route>
 
-                  {/* 👑 ADMIN PANEL */}
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute roles={["admin", "superadmin"]}>
-                        <AdminLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<AdminPanel />} />
-                    <Route path="users" element={<Users />} />
-                    <Route path="jobs" element={<AdminJobs />} />
-                    <Route path="logs" element={<AdminLogs />} />
-                    <Route path="messages" element={<AdminMessages />} />
-                    <Route path="mentor-approvals" element={<AdminMentorApprovals />} />
-                    <Route path="recruiter-approvals" element={<AdminRecruiterApprovals />} />
-                    <Route path="metrics" element={<AdminMetrics />} />
-                    <Route path="event-metrics" element={<AdminEventMetrics />} />
-                  </Route>
+                {/* 👑 ADMIN PANEL */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute roles={["admin", "superadmin"]}>
+                      <AdminLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<AdminPanel />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="jobs" element={<AdminJobs />} />
+                  <Route path="logs" element={<AdminLogs />} />
+                  <Route path="messages" element={<AdminMessages />} />
+                  <Route path="mentor-approvals" element={<AdminMentorApprovals />} />
+                  <Route path="recruiter-approvals" element={<AdminRecruiterApprovals />} />
+                  <Route path="metrics" element={<AdminMetrics />} />
+                  <Route path="event-metrics" element={<AdminEventMetrics />} />
+                </Route>
 
-                  {/* 🛠️ EVENT MANAGEMENT (Moved from Admin) */}
-                  <Route
-                    path="/manage"
-                    element={
-                      <ProtectedRoute roles={["admin", "superadmin", "recruiter", "mentor"]}>
-                        <Outlet />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="events" element={<AdminEventManager />} />
-                    <Route path="events/create" element={<CreateEvent />} />
-                    <Route path="events/:id/manage-quiz" element={<ManageQuiz />} />
-                    <Route path="events/:id/edit" element={<EditEvent />} />
-                    <Route path="events/registrations/:id" element={<EventRegistrations />} />
-                    <Route path="events/judge/:id" element={<JudgePanel />} />
-                  </Route>
+                {/* 🛠️ EVENT MANAGEMENT (Moved from Admin) */}
+                <Route
+                  path="/manage"
+                  element={
+                    <ProtectedRoute roles={["admin", "superadmin", "recruiter", "mentor"]}>
+                      <Outlet />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="events" element={<AdminEventManager />} />
+                  <Route path="events/create" element={<CreateEvent />} />
+                  <Route path="events/:id/manage-quiz" element={<ManageQuiz />} />
+                  <Route path="events/:id/edit" element={<EditEvent />} />
+                  <Route path="events/registrations/:id" element={<EventRegistrations />} />
+                  <Route path="events/judge/:id" element={<JudgePanel />} />
+                </Route>
 
-                  <Route path="/jobs" element={<JobList />} />
-                  <Route path="/candidate/applications" element={<ProtectedRoute roles={["candidate"]}><CandidateApplications /></ProtectedRoute>} />
-                  <Route path="/candidate/profile" element={<ProtectedRoute roles={["candidate"]}><CandidateProfile /></ProtectedRoute>} />
-                  <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
-                  <Route path="/practice/quiz" element={<ProtectedRoute><QuizGenerator /></ProtectedRoute>} />
+                <Route path="/jobs" element={<JobList />} />
+                <Route path="/candidate/applications" element={<ProtectedRoute roles={["candidate"]}><CandidateApplications /></ProtectedRoute>} />
+                <Route path="/candidate/profile" element={<ProtectedRoute roles={["candidate"]}><CandidateProfile /></ProtectedRoute>} />
+                <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
+                <Route path="/practice/quiz" element={<ProtectedRoute><QuizGenerator /></ProtectedRoute>} />
 
-                  {/* ❌ 404 */}
-                  <Route path="*" element={<div style={{ textAlign: "center", marginTop: 80 }}>404 — Page Not Found</div>} />
-                </Routes>
-              </PageTransition>
+                {/* ❌ 404 */}
+                <Route path="*" element={<div style={{ textAlign: "center", marginTop: 80 }}>404 — Page Not Found</div>} />
+              </Routes>
+            </PageTransition>
 
-              {!isDashboardLayout && <Footer />}
-            </motion.div>
-          </AnimatePresence>
+            {!isDashboardLayout && <Footer />}
+          </div>
         </ToastProvider>
-      </SocketProvider>
+      </SocketProvider >
     </>
   );
 }

@@ -44,7 +44,7 @@ export default function RecruiterLayout() {
    }, []);
 
    return (
-      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0a0a] font-sans transition-colors duration-300">
+      <div className="flex h-screen bg-slate-50 dark:bg-[#0a0a0a] font-sans transition-colors duration-300 overflow-hidden">
 
          {/* Sidebar */}
          <aside
@@ -151,7 +151,7 @@ export default function RecruiterLayout() {
 
          {/* Main Content */}
          <div
-            className="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out"
+            className="flex-1 flex flex-col h-full overflow-hidden transition-all duration-300 ease-in-out"
             style={{ marginLeft: collapsed ? '80px' : '280px' }} // Adjusted for wider sidebar
          >
             {/* Topbar */}
@@ -181,7 +181,7 @@ export default function RecruiterLayout() {
             </header>
 
             {/* Content Area */}
-            <main className="flex-1 p-8 lg:p-12 overflow-x-hidden">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 dark:bg-[#0a0a0a]">
                <AnimatePresence mode="wait">
                   <motion.div
                      key={location.pathname}
