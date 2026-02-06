@@ -104,8 +104,9 @@ export default function Navbar() {
   const mainLinks = [
     { label: "Home", path: "/" },
     { label: "Dashboard", path: getDashboardPath(), auth: true },
-    { label: "Events", path: "/events" },
   ];
+
+  const canManageEvents = ['admin', 'superadmin', 'recruiter', 'mentor'].includes(role);
 
   return (
     <>
@@ -167,62 +168,87 @@ export default function Navbar() {
               {/* Dropdowns Group */}
               <div className="flex items-center gap-1">
 
-                {/* Jobs Dropdown */}
+                {/* Events Dropdown */}
                 <div className="relative group px-3 py-2 cursor-pointer">
-                  <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/opportunities/jobs') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                    Jobs <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
+                  <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/events') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                    Events <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
                   </div>
                   <div className="absolute top-full right-0 pt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
                     <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
-                      <Link to="/opportunities/jobs" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Briefcase size={16} className="text-blue-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Find Jobs</span>
+                      <Link to="/events" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <Calendar size={16} className="text-yellow-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Explore Events</span>
                       </Link>
-                      <Link to="/resume-shield" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Shield size={16} className="text-emerald-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Resume Shield</span>
-                      </Link>
+                      {canManageEvents && (
+                        <Link to="/manage/events" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Layers size={16} className="text-indigo-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Manage Events</span>
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {/* Jobs Dropdown */}
+                {(!user || !['mentor', 'recruiter'].includes(role)) && (
+                  <div className="relative group px-3 py-2 cursor-pointer">
+                    <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/opportunities/jobs') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                      Jobs <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
+                    </div>
+                    <div className="absolute top-full right-0 pt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
+                      <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
+                        <Link to="/opportunities/jobs" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Briefcase size={16} className="text-blue-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Find Jobs</span>
+                        </Link>
+                        <Link to="/resume-shield" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Shield size={16} className="text-emerald-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Resume Shield</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Practice Dropdown (NEW) */}
-                <div className="relative group px-3 py-2 cursor-pointer">
-                  <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/practice') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                    Practice <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
-                  </div>
-                  <div className="absolute top-full right-0 pt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
-                    <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
-                      <Link to="/practice" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Target size={16} className="text-rose-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Practice Hub</span>
-                      </Link>
-                      <Link to="/challenges" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Code size={16} className="text-orange-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Coding Problems</span>
-                      </Link>
-                      <Link to="/mock-interview" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Rocket size={16} className="text-violet-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Mock Interview</span>
-                      </Link>
+                {(!user || !['mentor', 'recruiter'].includes(role)) && (
+                  <div className="relative group px-3 py-2 cursor-pointer">
+                    <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/practice') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                      Practice <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
+                    </div>
+                    <div className="absolute top-full right-0 pt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
+                      <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
+                        <Link to="/practice" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Target size={16} className="text-rose-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Practice Hub</span>
+                        </Link>
+                        <Link to="/challenges" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Code size={16} className="text-orange-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Coding Problems</span>
+                        </Link>
+                        <Link to="/mock-interview" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Rocket size={16} className="text-violet-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Mock Interview</span>
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Compete Dropdown */}
-                <div className="relative group px-3 py-2 cursor-pointer">
-                  <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/contests') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                    Compete <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
-                  </div>
-                  <div className="absolute top-full right-0 pt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
-                    <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
-                      <Link to="/contests" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Trophy size={16} className="text-purple-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Contests</span>
-                      </Link>
-                      <Link to="/hackathons" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Rocket size={16} className="text-pink-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Hackathons</span>
-                      </Link>
-                      <Link to="/events" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <Zap size={16} className="text-yellow-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Quizzes & Events</span>
-                      </Link>
+                {(!user || !['mentor', 'recruiter'].includes(role)) && (
+                  <div className="relative group px-3 py-2 cursor-pointer">
+                    <div className={`flex items-center gap-1.5 text-sm font-bold transition-colors ${isActive('/contests') ? 'text-indigo-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                      Compete <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-300 opacity-60" />
+                    </div>
+                    <div className="absolute top-full right-0 pt-4 w-60 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
+                      <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
+                        <Link to="/contests" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Trophy size={16} className="text-purple-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Contests</span>
+                        </Link>
+                        <Link to="/hackathons" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Rocket size={16} className="text-pink-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Hackathons</span>
+                        </Link>
+                        <Link to="/leaderboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                          <Star size={16} className="text-yellow-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Leaderboard</span>
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Mentorship Dropdown - Visible only to Candidates or Guests */}
                 {(!user || role === "candidate") && (
@@ -418,6 +444,21 @@ export default function Navbar() {
                 </div>
 
                 <div className="space-y-6">
+                  {/* Events Mobile */}
+                  <div>
+                    <h4 className="text-xs font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-3">Events</h4>
+                    <div className="space-y-2">
+                      <Link to="/events" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                        <Calendar size={18} className="text-yellow-500" /> <span className="font-bold text-slate-800 dark:text-white">Explore Events</span>
+                      </Link>
+                      {canManageEvents && (
+                        <Link to="/manage/events" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                          <Layers size={18} className="text-indigo-500" /> <span className="font-bold text-slate-800 dark:text-white">Manage Events</span>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Opportunities Mobile */}
                   <div>
                     <h4 className="text-xs font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest mb-3">Jobs</h4>

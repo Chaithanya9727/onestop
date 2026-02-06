@@ -7,9 +7,10 @@ import {
   Bell, Pin, Trash2, Edit2, Download, Paperclip,
   Search, X, PlusCircle, Megaphone, AlertCircle, CheckCircle
 } from "lucide-react";
+import AuthModal from "../components/AuthModal";
 
 export default function Notices() {
-  const { role, token } = useAuth();
+  const { role, token, isAuthenticated } = useAuth();
   const { get, post, del, put } = useApi();
 
   const [list, setList] = useState([]);
@@ -28,7 +29,10 @@ export default function Notices() {
   const [hasMore, setHasMore] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
-  const isAdminOrSuper = ["admin", "superadmin"].includes(role?.toLowerCase());
+  // Auth Modal
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
+
+  const isAdminOrSuper = isAuthenticated && ["admin", "superadmin"].includes(role?.toLowerCase());
 
   const load = async (reset = false) => {
     try {
@@ -59,6 +63,7 @@ export default function Notices() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated) { setAuthModalOpen(true); return; }
     setErr(""); setSuccess("");
     try {
       let attachmentUrl = null;
@@ -82,6 +87,7 @@ export default function Notices() {
   };
 
   const remove = async (id) => {
+    if (!isAuthenticated) { setAuthModalOpen(true); return; }
     if (!window.confirm("Delete this notice?")) return;
     try {
       await del(`/notices/${id}`);
@@ -97,6 +103,7 @@ export default function Notices() {
   };
 
   const startEdit = (n) => {
+    if (!isAuthenticated) { setAuthModalOpen(true); return; }
     setForm({
       title: n.title, body: n.body, audience: n.audience,
       pinned: n.pinned, file: null
@@ -275,7 +282,13 @@ export default function Notices() {
 
                     <div className="flex items-center gap-3">
                       {n.attachment && (
-                        <a href={n.attachment} target="_blank" rel="noreferrer" className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 rounded-lg transition-colors flex items-center gap-2 group/btn" title="Download Attachment">
+                        <a
+                          href={n.attachment}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => { if (!isAuthenticated) { e.preventDefault(); setAuthModalOpen(true); } }}
+                          className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 rounded-lg transition-colors flex items-center gap-2 group/btn" title="Download Attachment"
+                        >
                           <span className="text-xs font-bold hidden group-hover/btn:block">Download</span> <Download size={18} />
                         </a>
                       )}
@@ -310,6 +323,7 @@ export default function Notices() {
         )}
 
       </div>
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }

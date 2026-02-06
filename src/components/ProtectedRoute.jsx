@@ -29,6 +29,10 @@ export default function ProtectedRoute({
     return <Navigate to="/rpanel/overview" replace />;
   }
 
+  if (normalizedRole === "mentor" && location.pathname === "/dashboard") {
+    return <Navigate to="/mentor-dashboard" replace />;
+  }
+
   if (roles.length > 0 && !roles.includes(normalizedRole)) {
     return <Navigate to={redirectPath} replace />;
   }

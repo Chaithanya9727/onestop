@@ -1,12 +1,7 @@
 import React, { useState } from "react";
-import { ExternalLink, FileText, Check, Save } from "lucide-react";
+import { ExternalLink, FileText, Check, Save, Globe, Github } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-/**
- * SubmissionTable (Refactored to Tailwind)
- * Props:
- * - submissions: Array<Submission>
- * - onScore: (submission, { score, feedback, round, userId }) => Promise
- */
 export default function SubmissionTable({ submissions, onScore }) {
   const [drafts, setDrafts] = useState({}); // {submissionId: {score, feedback}}
 
@@ -14,64 +9,64 @@ export default function SubmissionTable({ submissions, onScore }) {
     setDrafts((d) => ({ ...d, [id]: { ...(d[id] || {}), [k]: v } }));
 
   return (
-    <div className="overflow-x-auto border border-slate-200 rounded-xl">
+    <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">
         <thead>
-          <tr className="bg-slate-50 border-b border-slate-200">
-            <th className="p-4 text-xs font-bold uppercase text-slate-500">Participant</th>
-            <th className="p-4 text-xs font-bold uppercase text-slate-500">Round</th>
-            <th className="p-4 text-xs font-bold uppercase text-slate-500">Submission</th>
-            <th className="p-4 text-xs font-bold uppercase text-slate-500 text-right">Score</th>
-            <th className="p-4 text-xs font-bold uppercase text-slate-500">Feedback</th>
-            <th className="p-4 text-xs font-bold uppercase text-slate-500 text-center">Save</th>
+          <tr className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+            <th className="p-6 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Participant</th>
+            <th className="p-6 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Round</th>
+            <th className="p-6 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Digital Asset</th>
+            <th className="p-6 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest text-right">Merit Score</th>
+            <th className="p-6 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Critical Feedback</th>
+            <th className="p-6 text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest text-center">Protocol</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
           {submissions.map((s) => (
-            <tr key={s._id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-              <td className="p-4">
-                <div className="font-bold text-slate-900">{s.user?.name || "—"}</div>
-                <div className="text-xs text-slate-500">{s.user?.email || "—"}</div>
+            <tr key={s._id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all group">
+              <td className="p-6">
+                <div className="font-black text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{s.user?.name || "Anonymous"}</div>
+                <div className="text-xs text-slate-500 font-medium lowercase tracking-wide mt-1">{s.user?.email || "no-email@id.com"}</div>
               </td>
-              <td className="p-4">
-                <span className="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-600">
-                  R{s.round}
+              <td className="p-6">
+                <span className="px-3 py-1.5 bg-slate-100 dark:bg-white/10 rounded-xl text-[10px] font-black text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 uppercase tracking-widest">
+                  Round {s.round}
                 </span>
               </td>
-              <td className="p-4">
-                 <div className="flex gap-2">
-                    {s.submissionLink && (
-                       <a href={s.submissionLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">
-                          Link <ExternalLink size={12}/>
-                       </a>
-                    )}
-                    {s.submissionFile?.url && (
-                       <a href={s.submissionFile.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline">
-                          File <FileText size={12}/>
-                       </a>
-                    )}
-                    {!s.submissionLink && !s.submissionFile?.url && <span className="text-slate-400 text-xs italic">No Content</span>}
-                 </div>
+              <td className="p-6">
+                <div className="flex gap-3">
+                  {s.submissionLink && (
+                    <a href={s.submissionLink} target="_blank" rel="noreferrer" className="p-2.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl hover:scale-110 transition-transform border border-indigo-100 dark:border-indigo-500/20 shadow-lg shadow-indigo-500/5" title="View Link">
+                      {s.submissionLink.includes('github.com') ? <Github size={18} /> : <Globe size={18} />}
+                    </a>
+                  )}
+                  {s.submissionFile?.url && (
+                    <a href={s.submissionFile.url} target="_blank" rel="noreferrer" className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl hover:scale-110 transition-transform border border-emerald-100 dark:border-emerald-500/20 shadow-lg shadow-emerald-500/5" title="View File">
+                      <FileText size={18} />
+                    </a>
+                  )}
+                  {!s.submissionLink && !s.submissionFile?.url && <span className="text-slate-400 dark:text-slate-600 text-[10px] font-bold uppercase tracking-widest">Abstain</span>}
+                </div>
               </td>
-              <td className="p-4 text-right">
+              <td className="p-6 text-right">
                 <input
                   type="number"
-                  className="w-20 p-2 border border-slate-200 rounded-lg text-sm font-bold text-right outline-none focus:border-blue-500"
+                  className="w-24 p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-black text-right outline-none focus:border-indigo-500 dark:focus:border-indigo-400 text-slate-900 dark:text-white transition-all hover:border-slate-300 dark:hover:border-white/20"
                   placeholder="0"
                   value={drafts[s._id]?.score ?? (s.score ?? "")}
                   onChange={(e) => set(s._id, "score", e.target.value)}
                 />
               </td>
-              <td className="p-4">
+              <td className="p-6">
                 <input
                   type="text"
-                  className="w-full p-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500"
-                  placeholder="Optional feedback..."
+                  className="w-full p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium outline-none focus:border-indigo-500 dark:focus:border-indigo-400 text-slate-900 dark:text-white transition-all hover:border-slate-300 dark:hover:border-white/20"
+                  placeholder="Professional commentary..."
                   value={drafts[s._id]?.feedback ?? (s.feedback ?? "")}
                   onChange={(e) => set(s._id, "feedback", e.target.value)}
                 />
               </td>
-              <td className="p-4 text-center">
+              <td className="p-6 text-center">
                 <button
                   onClick={() =>
                     onScore(s, {
@@ -81,22 +76,14 @@ export default function SubmissionTable({ submissions, onScore }) {
                       userId: s.user?._id,
                     })
                   }
-                  className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
-                  title="Save Score"
+                  className="p-3.5 bg-indigo-600 text-white rounded-[1.2rem] hover:bg-indigo-500 transition-all hover:rotate-12 active:scale-90 shadow-xl shadow-indigo-600/20 flex items-center justify-center mx-auto"
+                  title="Finalize Evaluation"
                 >
-                  <Save size={18} />
+                  <Save size={20} />
                 </button>
               </td>
             </tr>
           ))}
-
-          {submissions.length === 0 && (
-            <tr>
-              <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
-                No submissions found for this round.
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useLocation, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, NavLink, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
    LayoutDashboard,
@@ -11,7 +11,8 @@ import {
    ChevronLeft,
    ChevronRight,
    Menu,
-   Plus
+   Plus,
+   Home
 } from "lucide-react";
 import RecruiterTopbar from "../components/RecruiterTopbar.jsx";
 import RecruiterNotifications from "../components/RecruiterNotifications.jsx";
@@ -53,16 +54,16 @@ export default function RecruiterLayout() {
         `}
          >
             {/* Brand */}
-            <div className={`h-24 flex items-center ${collapsed ? 'justify-center' : 'px-8'} border-b border-white/5`}>
+            <Link to="/" className={`h-24 flex items-center ${collapsed ? 'justify-center' : 'px-8'} border-b border-white/5 hover:bg-white/5 transition-colors group`}>
                {!collapsed ? (
                   <div className="flex flex-col">
-                     <span className="text-2xl font-display font-black tracking-tight text-white leading-none">OneStop</span>
+                     <span className="text-2xl font-display font-black tracking-tight text-white leading-none group-hover:text-blue-400 transition-colors">OneStop</span>
                      <span className="text-xs font-bold text-blue-500 uppercase tracking-[0.2em] mt-1 font-body">Recruiter</span>
                   </div>
                ) : (
-                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white text-xl">R</div>
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white text-xl group-hover:scale-105 transition-transform">R</div>
                )}
-            </div>
+            </Link>
 
             {/* Nav */}
             <nav className="flex-1 py-8 px-4 space-y-2 overflow-y-auto custom-scrollbar">
@@ -96,6 +97,27 @@ export default function RecruiterLayout() {
                      </NavLink>
                   );
                })}
+
+               <div className="pt-4 mt-4 border-t border-white/5">
+                  <NavLink
+                     to="/"
+                     className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300
+                    ${collapsed ? 'justify-center' : ''}
+                 `}
+                  >
+                     <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                        <Home size={20} />
+                     </div>
+                     {!collapsed && (
+                        <span className="font-bold text-sm tracking-wide">Back to Home</span>
+                     )}
+                     {collapsed && (
+                        <div className="absolute left-full ml-4 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50 border border-white/10 translate-x-2 group-hover:translate-x-0">
+                           Back to Home
+                        </div>
+                     )}
+                  </NavLink>
+               </div>
             </nav>
 
             {/* User / Logout Section (Optional bottom section) */}

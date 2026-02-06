@@ -74,6 +74,7 @@ export function AuthProvider({ children }) {
         setToken,
         logout,
         loading,
+        isAuthenticated: !!user,
         refreshUser: loadUser,
         isMentorApproved,
       }}

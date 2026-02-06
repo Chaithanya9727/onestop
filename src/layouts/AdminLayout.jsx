@@ -1,152 +1,133 @@
-import { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { motion } from "framer-motion";
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  Users, 
-  MessageSquare, 
-  FileText, 
-  LogOut, 
-  Menu, 
-  ChevronLeft 
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation, NavLink, useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+   LayoutDashboard,
+   Users,
+   Briefcase,
+   Settings,
+   ChevronLeft,
+   ChevronRight,
+   Menu,
+   Shield,
+   FileText,
+   MessageSquare,
+   Activity,
+   Box,
+   Globe,
+   ShieldCheck,
+   Cpu,
+   Database,
+   Home,
+   LogOut
 } from "lucide-react";
+import AdminTopbar from "../components/AdminTopbar.jsx";
+import { useAuth } from "../context/AuthContext";
 
-const SIDEBAR_WIDTH = 260;
-const SIDEBAR_COLLAPSED = 80;
+const navItems = [
+   { to: "/admin", label: "Dashboard", icon: <LayoutDashboard size={20} />, exact: true },
+   { to: "/admin/users", label: "Users", icon: <Users size={20} /> },
+   { to: "/admin/jobs", label: "Jobs", icon: <Briefcase size={20} /> },
+   { to: "/admin/mentor-approvals", label: "Mentor Approvals", icon: <ShieldCheck size={20} /> },
+   { to: "/admin/recruiter-approvals", label: "Recruiter Approvals", icon: <Globe size={20} /> },
+   { to: "/admin/logs", label: "Audit Logs", icon: <FileText size={20} /> },
+   { to: "/admin/messages", label: "Messages", icon: <MessageSquare size={20} /> },
+   { to: "/admin/metrics", label: "Metrics", icon: <Activity size={20} /> },
+];
 
 export default function AdminLayout() {
-  const { user, role, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
+   const [collapsed, setCollapsed] = useState(false);
+   const [mobileOpen, setMobileOpen] = useState(false);
+   const location = useLocation();
+   const { logout, user } = useAuth();
+   const navigate = useNavigate();
 
-  const [collapsed, setCollapsed] = useState(false);
-  
-  // Responsive check
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setCollapsed(true);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Init
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+   useEffect(() => {
+      const handleResize = () => {
+         if (window.innerWidth < 1024) setCollapsed(true);
+         else setCollapsed(false);
+      };
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+   }, []);
 
-  const menuItems = [
-    { label: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/admin" },
-    { label: "Job Approvals", icon: <Briefcase size={20} />, path: "/admin/jobs" },
-    { label: "Recruiter Approvals", icon: <Users size={20} />, path: "/admin/recruiter-approvals" },
-    { label: "Mentor Approvals", icon: <Users size={20} />, path: "/admin/mentor-approvals" },
-    { label: "Manage Events", icon: <Briefcase size={20} />, path: "/admin/events" },
-    { label: "Users", icon: <Users size={20} />, path: "/admin/users" },
-    { label: "Messages", icon: <MessageSquare size={20} />, path: "/admin/messages" },
-    { label: "Audit Logs", icon: <FileText size={20} />, path: "/admin/logs" },
-  ];
+   const sidebarWidth = collapsed ? "w-[80px]" : "w-[280px]";
 
-  return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300">
-       {/* Background Gradients */}
-       <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-100 dark:bg-blue-600/5 rounded-full blur-[100px] transition-colors duration-500" />
-          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-100 dark:bg-purple-600/5 rounded-full blur-[100px] transition-colors duration-500" />
-       </div>
+   return (
+      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0a0a] font-sans transition-colors duration-300">
+         {/* Sidebar */}
+         <aside className={`fixed inset-y-0 left-0 z-40 bg-slate-900 dark:bg-black text-white transition-all duration-300 ease-in-out flex flex-col shadow-2xl border-r border-white/5 ${sidebarWidth} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            {/* Brand */}
+            <Link to="/" className={`h-24 flex items-center ${collapsed ? 'justify-center' : 'px-8'} border-b border-white/5`}>
+               {!collapsed ? (
+                  <div className="flex flex-col">
+                     <span className="text-2xl font-display font-black tracking-tight text-white leading-none">OneStop</span>
+                     <span className="text-xs font-bold text-indigo-500 uppercase tracking-[0.2em] mt-1">Admin OS</span>
+                  </div>
+               ) : (
+                  <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-black text-white text-xl">A</div>
+               )}
+            </Link>
 
-       {/* Sidebar */}
-       <motion.aside 
-          initial={false}
-          animate={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH }}
-          className={`fixed left-0 top-0 h-screen bg-white dark:bg-[#0f1014] border-r border-slate-200 dark:border-white/5 z-50 flex flex-col shadow-2xl shadow-slate-200/50 dark:shadow-[4px_0_24px_rgba(0,0,0,0.3)] transition-all duration-300 ease-in-out`}
-       >
-          {/* Header */}
-          <div className={`h-20 flex items-center ${collapsed ? 'justify-center' : 'justify-between px-6'} border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f1014]`}>
-             {!collapsed && (
-                <Link to="/" className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 group">
-                   <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-105 transition-transform"><span className="text-lg">🎓</span></div>
-                   OneStop
-                </Link>
-             )}
-             <button onClick={() => setCollapsed(!collapsed)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg text-slate-400 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                {collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
-             </button>
-          </div>
+            {/* Nav */}
+            <nav className="flex-1 py-8 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+               {navItems.map((item) => {
+                  const isActive = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
+                  return (
+                     <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.exact}
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'} ${collapsed ? 'justify-center' : ''}`}
+                     >
+                        <div className={`shrink-0 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                           {item.icon}
+                        </div>
+                        {!collapsed && (<span className="font-bold text-sm tracking-wide">{item.label}</span>)}
+                        {collapsed && (<div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50 border border-white/10 translate-x-2 group-hover:translate-x-0">{item.label}</div>)}
+                     </NavLink>
+                  );
+               })}
 
-          {/* User Info */}
-          <div className={`p-6 flex flex-col items-center ${collapsed ? 'gap-2' : 'gap-4'} border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0f1014]`}>
-             <div className="relative group">
-                <div className={`rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 ${collapsed ? 'w-10 h-10' : 'w-16 h-16'} transition-all group-hover:border-blue-500`}>
-                   {user?.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover"/>
-                   ) : (
-                      <div className="w-full h-full bg-white dark:bg-[#1a1a1a] flex items-center justify-center font-bold text-slate-500 dark:text-slate-400">{user?.name?.[0]}</div>
-                   )}
-                </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0f1014] rounded-full shadow-sm"></div>
-             </div>
-             {!collapsed && (
-                <div className="text-center">
-                   <h3 className="font-bold text-slate-900 dark:text-white leading-tight mb-1">{user?.name}</h3>
-                   <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-widest rounded-full border border-blue-200 dark:border-blue-500/20">{role}</span>
-                </div>
-             )}
-          </div>
+               <div className="pt-4 mt-4 border-t border-white/5">
+                  <NavLink to="/" className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300 ${collapsed ? 'justify-center' : ''}`}>
+                     <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                        <Home size={20} />
+                     </div>
+                     {!collapsed && (<span className="font-bold text-sm tracking-wide">Public View</span>)}
+                  </NavLink>
+               </div>
+            </nav>
 
-          {/* Menu */}
-          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
-             {menuItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                   <Link 
-                      key={item.path} 
-                      to={item.path}
-                      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative mb-1
-                         ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 dark:shadow-blue-600/20' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}
-                         ${collapsed ? 'justify-center' : ''}
-                      `}
-                   >
-                      <div className={`shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white'}`}>
-                         {item.icon}
-                      </div>
-                      
-                      {!collapsed && (
-                         <span className="font-bold text-sm tracking-tight">{item.label}</span>
-                      )}
+            {/* User / Logout */}
+            <div className="p-4 border-t border-white/5">
+               <button onClick={logout} className={`w-full flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-rose-500/10 hover:border-rose-500/20 text-slate-400 hover:text-rose-500 transition-all ${collapsed ? 'justify-center' : ''}`}>
+                  <LogOut size={20} />
+                  {!collapsed && <span className="font-bold text-xs">Terminate Session</span>}
+               </button>
+            </div>
 
-                      {/* Tooltip for collapsed state */}
-                      {collapsed && (
-                         <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform translate-x-2 group-hover:translate-x-0 z-50 whitespace-nowrap">
-                            {item.label}
-                         </div>
-                      )}
-                   </Link>
-                );
-             })}
-          </nav>
+            {/* Collapse Trigger */}
+            <button onClick={() => setCollapsed(!collapsed)} className="absolute -right-3 top-28 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform hidden lg:flex">
+               {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+         </aside>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-white dark:bg-[#0f1014]">
-             <button 
-                onClick={logout} 
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all ${collapsed ? 'justify-center' : ''}`}
-             >
-                <LogOut size={20} />
-                {!collapsed && <span className="font-bold text-sm">Logout</span>}
-             </button>
-          </div>
-       </motion.aside>
+         {/* Mobile Overlay */}
+         {mobileOpen && (<div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 lg:hidden" onClick={() => setMobileOpen(false)}></div>)}
 
-       {/* Main Content */}
-       <main 
-          className="flex-1 transition-all duration-300 ease-in-out min-h-screen relative z-10"
-          style={{ marginLeft: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH }}
-       >
-          <div className="p-0">
-             <Outlet />
-          </div>
-       </main>
-
-    </div>
-  );
+         {/* Main Content */}
+         <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" style={{ marginLeft: collapsed ? '80px' : '280px' }}>
+            <AdminTopbar title={navItems.find(item => item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to))?.label} />
+            <main className="flex-1 p-8 lg:p-12 overflow-x-hidden">
+               <AnimatePresence mode="wait">
+                  <motion.div key={location.pathname} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+                     <Outlet />
+                  </motion.div>
+               </AnimatePresence>
+            </main>
+         </div>
+      </div>
+   );
 }

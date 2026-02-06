@@ -27,7 +27,7 @@ export default function Practice() {
             desc: "Test your skills in Aptitude, Core CS subjects, and more with timed quizzes.",
             icon: Brain,
             color: "bg-pink-600",
-            link: "/events", // Linking to events where Quizzes are listed
+            link: "/practice/quiz", // Linking to AI Quiz Module
             btnText: "Take a Quiz"
         },
         {

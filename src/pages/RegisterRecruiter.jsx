@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Building2, User, Mail, Lock, Phone, ArrowRight, CheckCircle2,
-  Loader2, BadgeCheck, Globe, Briefcase, Linkedin, ShieldCheck
+  Loader2, BadgeCheck, Globe, Briefcase, Linkedin, ShieldCheck,
+  Sparkles, ShieldAlert, AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BackgroundGlow from "../components/BackgroundGlow";
@@ -20,6 +21,7 @@ export default function RegisterRecruiter() {
     email: "",
     otp: "",
     isEmailVerified: false,
+    isEmailOtpSent: false, // ✨ Added
     fullName: "",
     orgName: "",
     companyWebsite: "",
@@ -32,7 +34,12 @@ export default function RegisterRecruiter() {
     // Aadhaar verification
     aadhaarFile: null,
     aadhaarLast4: "",
-    aadhaarPreview: ""
+    aadhaarPreview: "",
+    aadhaarFullNumber: "", // ✨ Added for OTP
+    aadhaarOtp: "",
+    aadhaarOtpSent: false,
+    isAadhaarVerified: false,
+    aiAudit: null // ✨ Added for Gemini results
   });
 
   const [loading, setLoading] = useState(false);
@@ -43,6 +50,7 @@ export default function RegisterRecruiter() {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     setError("");
+    setSuccessMsg(""); // Clear messages on change
   };
 
   const handleAadhaarUpload = (e) => {
@@ -84,6 +92,74 @@ export default function RegisterRecruiter() {
   };
 
   /* ===========================
+     ⭐ AADHAAR OTP ACTIONS
+     =========================== */
+  const sendAadhaarOtp = async () => {
+    if (formData.aadhaarFullNumber.length !== 12) return setError("Enter valid 12-digit Aadhaar");
+    setLoading(true);
+    try {
+      const res = await post("/auth/aadhaar/send-otp", { aadhaarNumber: formData.aadhaarFullNumber });
+      setSuccessMsg(res.message);
+      setFormData(prev => ({ ...prev, aadhaarOtpSent: true }));
+    } catch (err) {
+      setError(err.message || "Aadhaar service unreachable");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyAadhaarOtp = async () => {
+    if (!formData.aadhaarOtp) return setError("Enter OTP sent to mobile");
+    setLoading(true);
+    try {
+      await post("/auth/aadhaar/verify-otp", {
+        aadhaarNumber: formData.aadhaarFullNumber,
+        otp: formData.aadhaarOtp
+      });
+      setFormData(prev => ({
+        ...prev,
+        isAadhaarVerified: true,
+        aadhaarLast4: formData.aadhaarFullNumber.slice(-4)
+      }));
+      setSuccessMsg("Identity Verified Successfully ✅");
+    } catch (err) {
+      setError("Invalid Aadhaar OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ===========================
+     ⭐ GEMINI AI AUDIT
+     =========================== */
+  const runAiAudit = async () => {
+    if (!formData.aadhaarFile) {
+      return setError("Please upload an Aadhaar image first");
+    }
+    setLoading(true);
+    try {
+      // Step 1: Upload to Cloudinary first
+      const uploadData = new FormData();
+      uploadData.append("file", formData.aadhaarFile);
+      const uploadRes = await post("/auth/upload-aadhaar", uploadData, true);
+
+      // Step 2: Send URL to Gemini
+      const auditRes = await post("/ai/analyze-aadhaar", {
+        imageUrl: uploadRes.url,
+        userName: formData.fullName
+      });
+
+      setFormData(prev => ({ ...prev, aiAudit: auditRes }));
+      setSuccessMsg("AI Audit Completed 🧠");
+    } catch (err) {
+      console.error(err);
+      setError("AI Audit failed. Proceeding with manual review.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ===========================
      STEP 1: EMAIL VERIFICATION
      =========================== */
   const sendOtp = async () => {
@@ -97,6 +173,7 @@ export default function RegisterRecruiter() {
     try {
       await post("/auth/send-verification-otp", { email: formData.email });
       setSuccessMsg("OTP sent to your email!");
+      setFormData(prev => ({ ...prev, isEmailOtpSent: true })); // ✨ Set flag
     } catch (err) {
       setError(err.message || "Failed to send OTP");
     } finally {
@@ -109,7 +186,7 @@ export default function RegisterRecruiter() {
     setLoading(true);
     try {
       await post("/auth/verify-verification-otp", { email: formData.email, otp: formData.otp });
-      setFormData(prev => ({ ...prev, isEmailVerified: true }));
+      setFormData(prev => ({ ...prev, isEmailVerified: true, isEmailOtpSent: false }));
       setSuccessMsg("Email verified successfully! Please complete your profile.");
       setTimeout(() => {
         setStep(1);
@@ -135,26 +212,16 @@ export default function RegisterRecruiter() {
     try {
       let aadhaarDocumentUrl = "";
 
-      // Upload Aadhaar document to Cloudinary if provided
+      // Upload Aadhaar document via Backend if provided
       if (formData.aadhaarFile) {
-        const cloudinaryFormData = new FormData();
-        cloudinaryFormData.append("file", formData.aadhaarFile);
-        cloudinaryFormData.append("upload_preset", "onestop_aadhaar"); // You'll need to create this preset
-        cloudinaryFormData.append("folder", "aadhaar_documents");
+        const uploadData = new FormData();
+        uploadData.append("file", formData.aadhaarFile);
 
-        const cloudinaryResponse = await fetch(
-          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your-cloud-name'}/image/upload`,
-          {
-            method: "POST",
-            body: cloudinaryFormData,
-          }
-        );
-
-        if (cloudinaryResponse.ok) {
-          const cloudinaryData = await cloudinaryResponse.json();
-          aadhaarDocumentUrl = cloudinaryData.secure_url;
-        } else {
-          throw new Error("Failed to upload Aadhaar document");
+        try {
+          const uploadRes = await post("/auth/upload-aadhaar", uploadData, true);
+          aadhaarDocumentUrl = uploadRes.url;
+        } catch (err) {
+          throw new Error("Failed to upload Aadhaar document. Please try a different file.");
         }
       }
 
@@ -170,6 +237,7 @@ export default function RegisterRecruiter() {
         linkedinProfile: formData.linkedin,
         aadhaarDocumentUrl,
         aadhaarLast4: formData.aadhaarLast4,
+        aadhaarVerified: formData.isAadhaarVerified // ✨ Pass OTP verification status
       });
 
       setSuccessMsg("🎉 Registration Successful! Awaiting admin approval...");
@@ -265,7 +333,7 @@ export default function RegisterRecruiter() {
                     </div>
 
                     {/* OTP Input - Only show if OTP sent */}
-                    {successMsg === "OTP sent to your email!" && (
+                    {formData.isEmailOtpSent && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
                         <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1 uppercase mt-4">Verification Code</label>
                         <div className="relative group">
@@ -283,7 +351,7 @@ export default function RegisterRecruiter() {
                     )}
 
                     <div className="mt-8">
-                      {successMsg !== "OTP sent to your email!" ? (
+                      {!formData.isEmailOtpSent ? (
                         <button onClick={sendOtp} disabled={loading} className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2">
                           {loading ? <Loader2 className="animate-spin" /> : "Verify Email"} <ArrowRight size={18} />
                         </button>
@@ -363,42 +431,137 @@ export default function RegisterRecruiter() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 ml-1 uppercase">Aadhaar Document</label>
-                          <input
-                            type="file"
-                            accept="image/*,application/pdf"
-                            onChange={handleAadhaarUpload}
-                            className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-500/20 dark:file:text-indigo-300"
-                          />
-                          {formData.aadhaarFile && (
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">✓ {formData.aadhaarFile.name}</p>
-                          )}
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 ml-1 uppercase">12-Digit Aadhaar Number</label>
+                            <div className="flex gap-2">
+                              <input
+                                name="aadhaarFullNumber"
+                                type="text"
+                                maxLength="12"
+                                value={formData.aadhaarFullNumber}
+                                onChange={handleChange}
+                                disabled={formData.isAadhaarVerified}
+                                className="flex-1 px-4 py-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 focus:border-indigo-500 outline-none font-bold text-sm dark:text-white disabled:opacity-50"
+                                placeholder="XXXX XXXX XXXX"
+                              />
+                              {!formData.isAadhaarVerified && !formData.aadhaarOtpSent && (
+                                <button
+                                  type="button"
+                                  onClick={sendAadhaarOtp}
+                                  disabled={loading}
+                                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-1"
+                                >
+                                  {loading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Send OTP
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 ml-1 uppercase">Last 4 Digits</label>
-                          <input
-                            name="aadhaarLast4"
-                            type="text"
-                            maxLength="4"
-                            pattern="[0-9]{4}"
-                            value={formData.aadhaarLast4}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2.5 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 focus:border-indigo-500 outline-none font-bold text-sm dark:text-white"
-                            placeholder="1234"
-                          />
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Only last 4 digits stored</p>
+                        {/* OTP Input for Aadhaar */}
+                        {formData.aadhaarOtpSent && !formData.isAadhaarVerified && (
+                          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2">
+                            <input
+                              name="aadhaarOtp"
+                              type="text"
+                              maxLength="6"
+                              value={formData.aadhaarOtp}
+                              onChange={handleChange}
+                              className="w-32 px-4 py-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 focus:border-indigo-500 outline-none font-bold text-sm dark:text-white tracking-widest"
+                              placeholder="123456"
+                            />
+                            <button
+                              type="button"
+                              onClick={verifyAadhaarOtp}
+                              disabled={loading}
+                              className="flex-1 py-3 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition-all"
+                            >
+                              Confirm OTP
+                            </button>
+                          </motion.div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 ml-1 uppercase">Aadhaar Document Card</label>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              onChange={handleAadhaarUpload}
+                              className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-500/20 dark:file:text-indigo-300"
+                            />
+                            {formData.aadhaarFile && (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">✓ {formData.aadhaarFile.name}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-col justify-end">
+                            {formData.isAadhaarVerified ? (
+                              <div className="px-4 py-3 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-xl border border-green-200 dark:border-green-500/20 flex items-center gap-2">
+                                <CheckCircle2 size={18} />
+                                <span className="text-xs font-black uppercase tracking-tight">E-KYC Completed</span>
+                              </div>
+                            ) : (
+                              <div className="px-4 py-3 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-white/10 flex items-center gap-2">
+                                <ShieldCheck size={18} />
+                                <span className="text-xs font-bold tracking-tight">Identity Pending...</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
+
+                        {formData.aadhaarPreview && (
+                          <div className="mt-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 uppercase">Card Preview:</p>
+                                <img src={formData.aadhaarPreview} alt="Aadhaar preview" className="max-h-32 rounded-lg border border-slate-200 dark:border-white/10 shadow-sm" />
+                              </div>
+                              {!formData.aiAudit && (
+                                <button
+                                  type="button"
+                                  onClick={runAiAudit}
+                                  disabled={loading}
+                                  className="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-black hover:bg-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-200 dark:shadow-none"
+                                >
+                                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                  Run AI Audit
+                                </button>
+                              )}
+                            </div>
+
+                            {/* AI Report Display */}
+                            {formData.aiAudit && (
+                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-sm font-black text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                                    <ShieldAlert size={16} />
+                                    AI Liveness Report
+                                  </h4>
+                                  <div className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-lg text-[10px] font-black uppercase tracking-tighter">
+                                    Trust Score: {formData.aiAudit.trustScore}%
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className={`p-3 rounded-xl border ${formData.aiAudit.isNameMatch ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+                                    <p className="text-[10px] font-bold uppercase opacity-60">Name Match</p>
+                                    <p className="text-xs font-black">{formData.aiAudit.isNameMatch ? 'Verified ✓' : 'Mismatch ✗'}</p>
+                                    <p className="text-[10px] italic">Extracted: {formData.aiAudit.extractedName}</p>
+                                  </div>
+                                  <div className={`p-3 rounded-xl border ${formData.aiAudit.isOriginal ? 'bg-green-50 border-green-100 text-green-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                                    <p className="text-[10px] font-bold uppercase opacity-60">Authenticity</p>
+                                    <p className="text-xs font-black">{formData.aiAudit.isOriginal ? 'Original Photo' : 'Digital Edit?'}</p>
+                                  </div>
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic">
+                                  "{formData.aiAudit.auditReport}"
+                                </p>
+                              </motion.div>
+                            )}
+                          </div>
+                        )}
                       </div>
-
-                      {formData.aadhaarPreview && (
-                        <div className="mt-3">
-                          <p className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2">Preview:</p>
-                          <img src={formData.aadhaarPreview} alt="Aadhaar preview" className="max-h-32 rounded-lg border border-slate-200 dark:border-white/10" />
-                        </div>
-                      )}
                     </div>
 
                     <div>
