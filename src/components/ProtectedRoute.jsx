@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Loader } from "lucide-react";
+import StunningLoader from "./StunningLoader";
 
 export default function ProtectedRoute({
   children,
@@ -11,12 +11,7 @@ export default function ProtectedRoute({
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-        <Loader size={36} className="animate-spin text-indigo-500 mb-4" />
-        <p className="font-medium animate-pulse">Verifying access...</p>
-      </div>
-    );
+    return <StunningLoader message="Verifying security Clearance..." fullPage={true} />;
   }
 
   if (!user) return <Navigate to="/login" replace />;

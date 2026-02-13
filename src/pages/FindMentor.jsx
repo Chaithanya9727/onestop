@@ -6,6 +6,7 @@ import {
    Loader, Zap, Shield, TrendingUp, Users, Award
 } from "lucide-react";
 import { motion } from "framer-motion";
+import StunningLoader from "../components/StunningLoader";
 
 export default function FindMentor() {
    const { get } = useApi();
@@ -141,8 +142,8 @@ export default function FindMentor() {
 
             {/* Content Grid */}
             {loading ? (
-               <div className="h-64 flex items-center justify-center">
-                  <Loader className="animate-spin text-blue-500" size={32} />
+               <div className="py-20">
+                  <StunningLoader message="Fetching Elite Mentors..." />
                </div>
             ) : mentors.length === 0 ? (
                <div className="text-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/5">

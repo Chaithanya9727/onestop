@@ -56,7 +56,7 @@ const Footer = () => {
             <div className="max-w-[1400px] mx-auto px-6 relative z-10">
 
                 {/* BOTTOM LINKS SECTION */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-10 mb-20">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-10 mb-12">
                     <div className="col-span-2 lg:col-span-2 space-y-6">
                         <Link to="/" className="inline-block">
                             <div className="flex items-center gap-2 cursor-pointer">
@@ -116,8 +116,8 @@ const Footer = () => {
                 </div>
 
                 {/* GIANT WATERMARK */}
-                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-full overflow-hidden pointer-events-none opacity-[0.03]">
-                    <h1 className="text-[15vw] font-black text-center text-white leading-none tracking-tighter select-none">
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-full overflow-hidden pointer-events-none opacity-[0.015]">
+                    <h1 className="text-[12vw] font-black text-center text-white leading-none tracking-tighter select-none">
                         ONESTOP
                     </h1>
                 </div>

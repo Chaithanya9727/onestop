@@ -5,6 +5,7 @@ import {
    ShieldCheck, Search, Eye, Check, X, Trash2, Briefcase, Users, Loader, Filter,
    TrendingUp, Clock, MapPin, DollarSign, Building2, CheckCircle, ExternalLink, AlertCircle
 } from "lucide-react";
+import StunningLoader from "../components/StunningLoader";
 
 export default function AdminJobs() {
    const { get, patch, del } = useApi();
@@ -100,12 +101,7 @@ export default function AdminJobs() {
       </div>
    );
 
-   if (loading) return (
-      <div className="flex flex-col justify-center items-center h-[60vh] transition-colors">
-         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-         <p className="text-slate-500 font-bold animate-pulse uppercase tracking-[0.2em] text-[10px]">Scanning Corporate Offerings...</p>
-      </div>
-   );
+   if (loading) return <StunningLoader message="Scanning Corporate Offerings..." fullPage={true} />;
 
    return (
       <div className="max-w-7xl mx-auto p-6 md:p-10 pb-24 relative">

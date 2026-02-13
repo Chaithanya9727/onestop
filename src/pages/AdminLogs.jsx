@@ -6,6 +6,7 @@ import { useToast } from "../components/ToastProvider";
 import {
    FileText, Search, Trash2, Filter, RefreshCw, Loader, CheckSquare, Square, AlertTriangle, ChevronLeft, ChevronRight
 } from "lucide-react";
+import StunningLoader from "../components/StunningLoader";
 
 export default function AdminLogs() {
    const { get, del } = useApi();
@@ -155,7 +156,7 @@ export default function AdminLogs() {
             {/* Table */}
             <div className="bg-white dark:bg-[#0f1014] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-xl overflow-hidden min-h-[400px]">
                {loading ? (
-                  <div className="flex justify-center items-center h-64"><Loader className="animate-spin text-purple-500" size={32} /></div>
+                  <StunningLoader message="Analyzing Audit Transmissions..." />
                ) : logs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-500">
                      <FileText size={48} className="mb-4 opacity-20" />

@@ -7,6 +7,8 @@ import {
     Code, Database, Globe, Server, Terminal, Cpu, Layout, Clock, Zap, Target
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { useAuth } from "../context/AuthContext";
+import AuthModal from "../components/AuthModal";
 
 // Topic Icons Mapping
 const TOPICS = [
@@ -25,6 +27,8 @@ const DIFFICULTIES = [
 ];
 
 export default function QuizGenerator() {
+    const { user } = useAuth();
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { post } = useApi();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -66,6 +70,10 @@ export default function QuizGenerator() {
     };
 
     const handleStart = async () => {
+        if (!user) {
+            setIsAuthModalOpen(true);
+            return;
+        }
         const finalTopic = customTopic.trim() || config.topic;
         if (!finalTopic) return;
 
@@ -118,6 +126,7 @@ export default function QuizGenerator() {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white py-10 px-4 relative overflow-hidden font-sans select-none flex items-center justify-center">
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
             {/* 🌌 Animated Background Mesh */}
             <div className="fixed inset-0 pointer-events-none">

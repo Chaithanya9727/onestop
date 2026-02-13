@@ -7,6 +7,7 @@ import {
    CheckCircle, XCircle, GraduationCap, Loader2, Mail, Briefcase, Award, Shield,
    User, ExternalLink, ArrowRight, Zap, Target, Star, ShieldCheck, AlertCircle, FileText, Linkedin, Search, Globe
 } from "lucide-react";
+import StunningLoader from "../components/StunningLoader";
 
 export default function AdminMentorApprovals() {
    const { role } = useAuth();
@@ -49,12 +50,7 @@ export default function AdminMentorApprovals() {
       }
    };
 
-   if (loading) return (
-      <div className="flex flex-col justify-center items-center h-[60vh] transition-colors">
-         <Loader2 className="animate-spin text-violet-600 mb-4" size={48} />
-         <p className="text-slate-500 font-bold animate-pulse uppercase tracking-[0.2em] text-[10px]">Filtering Knowledge Sources...</p>
-      </div>
-   );
+   if (loading) return <StunningLoader message="Filtering Knowledge Sources..." fullPage={true} />;
 
    if (role !== "admin" && role !== "superadmin") {
       return (

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import useApi from "../hooks/useApi";
 import { Briefcase, Users, UserCheck, Clock, TrendingUp, RefreshCw, Loader2 } from "lucide-react";
+import StunningLoader from "../components/StunningLoader";
 
 export default function AdminMetrics() {
    const { get } = useApi();
@@ -31,14 +32,7 @@ export default function AdminMetrics() {
       fetchInsights();
    }, []);
 
-   if (loading) {
-      return (
-         <div className="flex flex-col justify-center items-center h-[60vh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-500 font-bold animate-pulse">Analyzing Platform Data...</p>
-         </div>
-      );
-   }
+   if (loading) return <StunningLoader message="Analyzing Platform Data..." fullPage={true} />;
 
    if (error) {
       return (

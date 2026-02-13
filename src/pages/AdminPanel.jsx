@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import useApi from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ToastProvider";
+import StunningLoader from "../components/StunningLoader";
 
 export default function AdminPanel() {
    const { role } = useAuth();
@@ -82,7 +83,7 @@ export default function AdminPanel() {
    const totalJobs = jobs.length;
    const totalLogs = logs.length;
 
-   if (loading) return <div className="flex justify-center items-center h-screen bg-slate-50 dark:bg-[#0a0a0a]"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
+   if (loading) return <StunningLoader message="Initializing Administrative Protocols..." fullPage={true} />;
 
    if (role !== "admin" && role !== "superadmin") {
       return (

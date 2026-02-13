@@ -4,6 +4,8 @@ import { Mic, Video, StopCircle, Sparkles, Loader, Play, User, BrainCircuit, Bui
 import useApi from '../hooks/useApi';
 import { useToast } from '../components/ToastProvider';
 import Confetti from 'react-confetti';
+import { useAuth } from '../context/AuthContext';
+import AuthModal from '../components/AuthModal';
 
 export default function MockInterviewBot() {
    const { post } = useApi();
@@ -12,6 +14,9 @@ export default function MockInterviewBot() {
    // Refs
    const videoRef = useRef(null);
    const synthesisRef = useRef(window.speechSynthesis);
+
+   const { user } = useAuth();
+   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
    // Application State
    const [step, setStep] = useState('config'); // 'config' | 'interview'
@@ -110,6 +115,10 @@ export default function MockInterviewBot() {
    };
 
    const startInterview = async () => {
+      if (!user) {
+         setIsAuthModalOpen(true);
+         return;
+      }
       if (!config.role || !config.company) return showToast("Please fill in role and company", "error");
       setLoadingQuestions(true);
       setStep('interview');
@@ -275,6 +284,7 @@ export default function MockInterviewBot() {
 
    return (
       <div className="min-h-screen bg-[#050505] text-white font-sans overflow-x-hidden relative selection:bg-indigo-500/30">
+         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
          {showConfetti && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} />}
 
          {/* Ambient Background */}

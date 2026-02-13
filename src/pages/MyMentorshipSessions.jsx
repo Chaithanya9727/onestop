@@ -8,6 +8,7 @@ import {
    MoreHorizontal, Shield, Sparkles, Plus
 } from "lucide-react";
 import { useToast } from "../components/ToastProvider";
+import StunningLoader from "../components/StunningLoader";
 
 export default function MyMentorshipSessions() {
    const { user } = useAuth();
@@ -118,7 +119,7 @@ export default function MyMentorshipSessions() {
    // Helper: Get next upcoming session
    const nextSession = upcomingSessions.filter(s => s.status === 'confirmed').sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))[0];
 
-   if (loading) return <div className="h-screen flex items-center justify-center bg-[#030712] text-white"><Loader className="animate-spin text-blue-600" size={32} /></div>;
+   if (loading) return <StunningLoader message="Fetching your mentorship sessions..." />;
 
    return (
       <div className="min-h-screen bg-[#030712] text-white p-6 md:p-10 pb-20 pt-24 font-sans selection:bg-blue-500/30">
@@ -181,7 +182,7 @@ export default function MyMentorshipSessions() {
                            </div>
                            <div>
                               <p className="text-xs font-bold text-blue-300 uppercase opacity-70 mb-1">Time</p>
-                              <p className="text-xl font-bold">{nextSession.scheduledTime}</p>
+                              <p className="text-xl font-bold">{nextSession.scheduledTime?.startTime || nextSession.scheduledTime?.toString()}</p>
                            </div>
                         </div>
                         {nextSession.meetingLink && (
@@ -265,7 +266,7 @@ export default function MyMentorshipSessions() {
                            <div className="flex flex-col md:items-end justify-between gap-6 border-t md:border-t-0 border-white/10 pt-6 md:pt-0 md:pl-8 md:border-l md:w-64">
                               <div className="text-left md:text-right">
                                  <div className="text-2xl font-black text-white">{new Date(session.scheduledDate).getDate()} <span className="text-sm font-bold text-slate-500 uppercase">{new Date(session.scheduledDate).toLocaleDateString('en-US', { month: 'short' })}</span></div>
-                                 <div className="text-sm font-bold text-slate-400 mt-1 flex items-center md:justify-end gap-2"><Clock size={14} /> {session.scheduledTime}</div>
+                                 <div className="text-sm font-bold text-slate-400 mt-1 flex items-center md:justify-end gap-2"><Clock size={14} /> {session.scheduledTime?.startTime || session.scheduledTime?.toString()}</div>
                               </div>
 
                               <div className="flex flex-col gap-2 w-full">
@@ -281,7 +282,7 @@ export default function MyMentorshipSessions() {
                                  >
                                     <Video size={16} /> Join
                                  </button>
-                              )}
+                                 }
 
                                  {/* Mentor Actions: Accept/Decline */}
                                  {isMentor && session.status === 'pending' && (

@@ -1,17 +1,24 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
     Code, Brain, FileText, Video, Target, Zap, Trophy, ArrowRight, Shield, Terminal
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import AuthModal from "../components/AuthModal";
 
 export default function Practice() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
     const features = [
         {
             title: "Coding Problems",
             desc: "Solve 100+ curated problems across Data Structures, Algorithms, and SQL.",
             icon: Terminal,
             color: "bg-blue-600",
-            link: "/challenges", // Assuming Challenges page handles this
+            link: "/challenges",
             btnText: "Start Coding"
         },
         {
@@ -27,7 +34,7 @@ export default function Practice() {
             desc: "Test your skills in Aptitude, Core CS subjects, and more with timed quizzes.",
             icon: Brain,
             color: "bg-pink-600",
-            link: "/practice/quiz", // Linking to AI Quiz Module
+            link: "/practice/quiz",
             btnText: "Take a Quiz"
         },
         {
@@ -40,8 +47,17 @@ export default function Practice() {
         }
     ];
 
+    const handleInteraction = (e, link) => {
+        if (!user) {
+            e.preventDefault();
+            setIsAuthModalOpen(true);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] pb-20 pt-24 px-6 relative overflow-hidden">
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
             {/* Background */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100 dark:bg-blue-600/5 rounded-full blur-[120px]" />
@@ -49,7 +65,6 @@ export default function Practice() {
             </div>
 
             <div className="max-w-7xl mx-auto relative z-10">
-
                 <div className="text-center max-w-2xl mx-auto mb-16">
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-200 dark:bg-white/10 dark:text-white text-slate-700 text-xs font-bold uppercase tracking-widest mb-6">
                         <Target size={14} className="text-blue-600 dark:text-blue-400" /> Practice & Prepare
@@ -87,27 +102,17 @@ export default function Practice() {
                                 {feature.desc}
                             </p>
 
-                            <Link to={feature.link} className={`inline-flex items-center gap-2 px-8 py-4 ${feature.color} text-white font-bold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-sm uppercase tracking-wide`}>
+                            <Link
+                                to={feature.link}
+                                onClick={(e) => handleInteraction(e, feature.link)}
+                                className={`inline-flex items-center gap-2 px-8 py-4 ${feature.color} text-white font-bold rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-sm uppercase tracking-wide`}
+                            >
                                 {feature.btnText} <ArrowRight size={18} />
                             </Link>
                         </motion.div>
                     ))}
                 </div>
 
-                {/* Stats Section */}
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                        { label: "Coding Problems", val: "500+" },
-                        { label: "Mock Interviews", val: "10K+" },
-                        { label: "Active Users", val: "50K+" },
-                        { label: "Quizzes Taken", val: "1.2M+" },
-                    ].map((stat, i) => (
-                        <div key={i} className="text-center p-8 bg-white/50 dark:bg-[#0f1014]/50 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-white/5">
-                            <div className="text-4xl font-black text-slate-900 dark:text-white mb-1">{stat.val}</div>
-                            <div className="text-xs font-bold uppercase text-slate-500 tracking-wider">{stat.label}</div>
-                        </div>
-                    ))}
-                </motion.div>
             </div>
         </div>
     );

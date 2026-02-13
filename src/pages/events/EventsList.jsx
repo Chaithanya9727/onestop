@@ -50,6 +50,16 @@ export default function EventsList() {
       }
    };
 
+   const getEventStatus = (event) => {
+      const now = new Date();
+      const start = new Date(event.startDate || event.date);
+      const end = new Date(event.endDate || event.date);
+
+      if (now < start) return "upcoming";
+      if (now > end) return "ended";
+      return "ongoing";
+   };
+
    const handleEventClick = (event) => {
       if (!isAuthenticated) {
          setAuthModalOpen(true);
@@ -396,9 +406,19 @@ export default function EventsList() {
                                  </div>
                               )}
 
-                              {event.status === 'ongoing' && (
-                                 <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-white"></span> LIVE NOW
+                              {getEventStatus(event) === 'ongoing' && (
+                                 <div className="absolute top-4 left-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg animate-pulse flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-white shadow-[0_0_5px_white]"></span> LIVE NOW
+                                 </div>
+                              )}
+                              {getEventStatus(event) === 'ended' && (
+                                 <div className="absolute top-4 left-4 bg-rose-500 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg flex items-center gap-1">
+                                    <Clock size={12} /> ENDED
+                                 </div>
+                              )}
+                              {getEventStatus(event) === 'upcoming' && (
+                                 <div className="absolute top-4 left-4 bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg flex items-center gap-1">
+                                    <Calendar size={12} /> UPCOMING
                                  </div>
                               )}
                            </div>

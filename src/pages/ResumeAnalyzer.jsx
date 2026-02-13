@@ -9,8 +9,12 @@ import {
   Sparkles, Zap, TrendingUp, BookOpen, Target, Lightbulb, Download
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../context/AuthContext';
+import AuthModal from '../components/AuthModal';
 
 export default function ResumeAnalyzer() {
+  const { user } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { post } = useApi();
   const [file, setFile] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -32,6 +36,10 @@ export default function ResumeAnalyzer() {
   };
 
   const analyzeResume = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     if (!file) return;
 
     setAnalyzing(true);
@@ -58,14 +66,9 @@ export default function ResumeAnalyzer() {
     setEnhancement(null);
 
     try {
-      // Extract text from result for enhancement
-      const resumeText = `
-        Skills: ${result.details?.skillsDetected?.join(", ") || ""}
-        Feedback: ${JSON.stringify(result.feedback || {})}
-      `;
-
+      // Pass full text for deep enhancement
       const res = await post('/ai/enhance-cv', {
-        resumeText,
+        resumeText: result.fullText || "",
         targetRole: "General",
         experience: "Mid-level"
       });
@@ -80,169 +83,192 @@ export default function ResumeAnalyzer() {
     }
   };
 
-  const downloadReport = () => {
-    if (!enhancement) return;
+  // Replaces the old report download with a professional CV layout
+  const downloadProfessionalCV = () => {
+    try {
+      console.log("📥 CV Download Triggered", enhancement);
+      if (!enhancement || !enhancement.rewrittenResume) {
+        alert("AI is still processing the template. Please wait a moment.");
+        return;
+      }
 
-    // Create new PDF document
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
+      const resume = enhancement.rewrittenResume;
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 15;
+      const contentWidth = pageWidth - (margin * 2);
+      let y = 20;
 
-    // --- Header ---
-    doc.setFillColor(37, 99, 235); // Blue 600
-    doc.rect(0, 0, pageWidth, 40, 'F');
+      // Helper: Draw full width section line
+      const drawSectionLine = (yPos) => {
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.2);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+      };
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text("Resume Enhancement Report", 20, 20);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Powered by OneStop AI Resume Shield", 20, 30);
-
-    let y = 55;
-
-    // --- SCORES ---
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Impact Metrics", 20, y);
-    y += 8;
-
-    const scores = [
-      ["Current Quality Score", `${enhancement.impactMetrics?.beforeScore || enhancement.overallScore}/100`],
-      ["Potential Quality Score", `${enhancement.impactMetrics?.afterScore}/100`],
-      ["ATS Compatibility", `${enhancement.impactMetrics?.atsCompatibility}/100`],
-      ["Readability Score", `${enhancement.impactMetrics?.readability}/100`]
-    ];
-
-    autoTable(doc, {
-      startY: y,
-      head: [['Metric', 'Score']],
-      body: scores,
-      theme: 'grid',
-      headStyles: { fillColor: [37, 99, 235], textColor: 255 },
-      styles: { fontSize: 10, cellPadding: 3 },
-      columnStyles: { 0: { fontStyle: 'bold' } },
-      margin: { left: 20, right: 20 }
-    });
-
-    y = doc.lastAutoTable.finalY + 15;
-
-    // --- ENHANCED SUMMARY ---
-    if (enhancement.enhancedSummary) {
-      if (y > 250) { doc.addPage(); y = 20; }
-      doc.setFontSize(14);
+      // --- Header (Centered) ---
       doc.setFont("helvetica", "bold");
-      doc.text("Suggested Professional Summary", 20, y);
+      doc.setFontSize(22);
+      doc.setTextColor(0, 0, 0);
+      const name = (resume.personal?.name || "CANDIDATE NAME").toUpperCase();
+      doc.text(name, pageWidth / 2, y, { align: "center" });
       y += 8;
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "italic");
-      doc.setTextColor(70, 70, 70);
-      const splitSummary = doc.splitTextToSize(enhancement.enhancedSummary, pageWidth - 40);
-      doc.text(splitSummary, 20, y);
-
-      y += (splitSummary.length * 5) + 15;
-      doc.setTextColor(0, 0, 0); // Reset color
-    }
-
-    // --- GRAMMAR ISSUES ---
-    if (enhancement.grammarIssues?.length > 0) {
-      if (y > 230) { doc.addPage(); y = 20; }
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Grammar & Language Fixes", 20, y);
-      y += 6;
-
-      const grammarData = enhancement.grammarIssues.map(g => [g.original, g.corrected, g.reason]);
-
-      autoTable(doc, {
-        startY: y,
-        head: [['Original', 'Correction', 'Reason']],
-        body: grammarData,
-        theme: 'striped',
-        headStyles: { fillColor: [220, 38, 38], textColor: 255 }, // Red for errors
-        styles: { fontSize: 9 },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 50 } }, // Wrap text
-        margin: { left: 20, right: 20 }
-      });
-
-      y = doc.lastAutoTable.finalY + 15;
-    }
-
-    // --- CONTENT IMPROVEMENTS ---
-    if (enhancement.contentImprovements?.length > 0) {
-      if (y > 250) { doc.addPage(); y = 20; }
-
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Content Improvements", 20, y);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const contactItems = [
+        resume.personal?.phone,
+        resume.personal?.email,
+        resume.personal?.linkedin ? `linkedin.com/in/${resume.personal.linkedin.split('/').pop()}` : null,
+        resume.personal?.location
+      ].filter(Boolean);
+      const contactLine = contactItems.join("  •  ");
+      doc.text(contactLine, pageWidth / 2, y, { align: "center" });
+      y += 4;
+      drawSectionLine(y);
       y += 10;
 
-      enhancement.contentImprovements.forEach(imp => {
-        if (y > 260) { doc.addPage(); y = 20; }
-
-        // Section Header
-        doc.setFontSize(11);
+      // --- Work Experience ---
+      if (resume.experience?.length > 0) {
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(217, 119, 6); // Amber
-        doc.text(`• Section: ${imp.section}`, 20, y);
+        doc.setFontSize(11);
+        doc.text("WORK EXPERIENCE", margin, y);
+        y += 2;
+        drawSectionLine(y);
         y += 6;
 
-        // Details
-        doc.setFontSize(10);
+        (resume.experience || []).forEach((exp) => {
+          if (!exp) return;
+          if (y > 260) { doc.addPage(); y = 20; }
+
+          // Company | Role
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          const titleLeft = `${exp.company} | ${exp.role}`;
+          doc.text(titleLeft, margin, y);
+
+          // Location | Period
+          doc.setFont("helvetica", "normal");
+          const titleRight = `${exp.location ? exp.location + " | " : ""}${exp.period}`;
+          const rightWidth = doc.getTextWidth(titleRight);
+          doc.text(titleRight, pageWidth - margin - rightWidth, y);
+          y += 5;
+
+          // Tech Stack (If available)
+          if (exp.techStack) {
+            doc.setFont("helvetica", "bold");
+            doc.text("Tech Stack: ", margin, y);
+            doc.setFont("helvetica", "normal");
+            doc.text(exp.techStack, margin + doc.getTextWidth("Tech Stack: "), y);
+            y += 5;
+          }
+
+          // Points
+          (exp.points || []).forEach((point) => {
+            if (y > 275) { doc.addPage(); y = 20; }
+            const splitPoint = doc.splitTextToSize(`• ${point}`, contentWidth - 5);
+            doc.text(splitPoint, margin + 2, y);
+            y += (splitPoint.length * 4.5);
+          });
+          y += 4;
+        });
+      }
+
+      // --- Projects ---
+      if (resume.projects?.length > 0) {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("PROJECTS", margin, y);
+        y += 2;
+        drawSectionLine(y);
+        y += 6;
+
+        (resume.projects || []).forEach((proj) => {
+          if (!proj) return;
+          if (y > 260) { doc.addPage(); y = 20; }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(proj.title, margin, y);
+          y += 5;
+
+          if (proj.techStack) {
+            doc.setFont("helvetica", "bold");
+            doc.text("Tech Used: ", margin, y);
+            doc.setFont("helvetica", "normal");
+            doc.text(proj.techStack, margin + doc.getTextWidth("Tech Used: "), y);
+            y += 5;
+          }
+
+          const splitDesc = doc.splitTextToSize(`• ${proj.description}`, contentWidth - 5);
+          doc.text(splitDesc, margin + 2, y);
+          y += (splitDesc.length * 4.5) + 4;
+        });
+      }
+
+      // --- Technical Skills ---
+      if (resume.skills?.length > 0) {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("TECHNICAL SKILLS", margin, y);
+        y += 2;
+        drawSectionLine(y);
+        y += 6;
+
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(50, 50, 50);
+        doc.setFontSize(10);
+        (resume.skills || []).forEach(skillLine => {
+          if (y > 280) { doc.addPage(); y = 20; }
+          const parts = skillLine.split(':');
+          if (parts.length > 1) {
+            doc.setFont("helvetica", "bold");
+            doc.text(parts[0] + ":", margin, y);
+            doc.setFont("helvetica", "normal");
+            doc.text(parts.slice(1).join(':'), margin + doc.getTextWidth(parts[0] + ": "), y);
+          } else {
+            doc.text(skillLine, margin, y);
+          }
+          y += 5;
+        });
+        y += 5;
+      }
 
-        const issue = `Issue: ${imp.issue}`;
-        const suggestion = `Suggestion: ${imp.suggestion}`;
+      // --- Education ---
+      if (resume.education?.length > 0) {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("EDUCATION", margin, y);
+        y += 2;
+        drawSectionLine(y);
+        y += 6;
 
-        const splitIssue = doc.splitTextToSize(issue, pageWidth - 30);
-        doc.text(splitIssue, 25, y);
-        y += splitIssue.length * 5;
+        (resume.education || []).forEach((edu) => {
+          if (!edu) return;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          const eduLeft = `${edu.degree}${edu.cgpa ? ' | CGPA - ' + edu.cgpa : ''}`;
+          doc.text(eduLeft, margin, y);
 
-        const splitSuggestion = doc.splitTextToSize(suggestion, pageWidth - 30);
-        doc.text(splitSuggestion, 25, y);
-        y += splitSuggestion.length * 5 + 4;
+          doc.setFont("helvetica", "normal");
+          const year = edu.year || "";
+          doc.text(year, pageWidth - margin - doc.getTextWidth(year), y);
+          y += 5;
 
-        if (imp.example) {
-          doc.setFont("helvetica", "italic");
-          const example = `Example: ${imp.example}`;
-          const splitExample = doc.splitTextToSize(example, pageWidth - 30);
-          doc.text(splitExample, 25, y);
-          y += splitExample.length * 5;
-        }
+          doc.text(`${edu.school}`, margin, y);
+          y += 8;
+        });
+      }
 
-        y += 6; // Spacing between items
-      });
-
-      doc.setTextColor(0, 0, 0); // Reset
-      y += 10;
+      // Save
+      const fileName = `${(resume.personal?.name || "Professional").replace(/[^a-z0-9]/gi, '_')}_CV.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error("❌ PDF Generation Error:", err);
+      alert("Failed to generate PDF. Please check console.");
     }
-
-    // --- ACTION STEPS ---
-    if (enhancement.actionableSteps?.length > 0) {
-      if (y > 240) { doc.addPage(); y = 20; }
-
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Your Action Plan", 20, y);
-      y += 8;
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-
-      enhancement.actionableSteps.forEach((step, i) => {
-        const stepText = `${i + 1}. ${step}`;
-        const splitStep = doc.splitTextToSize(stepText, pageWidth - 30);
-        doc.text(splitStep, 20, y);
-        y += splitStep.length * 6;
-      });
-    }
-
-    // Save
-    doc.save(`OneStop_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const getScoreColor = (score) => {
@@ -253,6 +279,7 @@ export default function ResumeAnalyzer() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-white p-6 md:p-12 font-sans relative overflow-hidden transition-colors duration-300">
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       {/* Background Decor */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100 dark:bg-blue-600/10 rounded-full blur-[120px] transition-colors"></div>
@@ -528,16 +555,16 @@ export default function ResumeAnalyzer() {
                         <Sparkles className="text-white" size={28} />
                       </div>
                       <div>
-                        <h2 className="text-3xl font-black text-slate-900 dark:text-white">CV Enhancement Report</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-bold">AI-Powered Improvements</p>
+                        <h2 className="text-3xl font-black text-slate-900 dark:text-white">Professional CV</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-bold">AI-Powered Rewriting</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={downloadReport}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                        onClick={downloadProfessionalCV}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
                       >
-                        <Download size={18} /> Download PDF
+                        <Download size={18} /> Download CV (PDF)
                       </button>
                       <button
                         onClick={() => setShowEnhancement(false)}
@@ -548,148 +575,62 @@ export default function ResumeAnalyzer() {
                     </div>
                   </div>
 
-                  {/* Overall Score */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/20">
-                      <div className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Current</div>
-                      <div className="text-3xl font-black text-blue-600 dark:text-blue-400">{enhancement.impactMetrics?.beforeScore || enhancement.overallScore}</div>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-500/10 p-4 rounded-2xl border border-green-200 dark:border-green-500/20">
-                      <div className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Potential</div>
-                      <div className="text-3xl font-black text-green-600 dark:text-green-400">{enhancement.impactMetrics?.afterScore}</div>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-500/10 p-4 rounded-2xl border border-purple-200 dark:border-purple-500/20">
-                      <div className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1">ATS Score</div>
-                      <div className="text-3xl font-black text-purple-600 dark:text-purple-400">{enhancement.impactMetrics?.atsCompatibility}</div>
-                    </div>
-                    <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-2xl border border-amber-200 dark:border-amber-500/20">
-                      <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Readability</div>
-                      <div className="text-3xl font-black text-amber-600 dark:text-amber-400">{enhancement.impactMetrics?.readability}</div>
-                    </div>
-                  </div>
-
-                  {/* Enhanced Summary */}
+                  {/* Summary */}
                   {enhancement.enhancedSummary && (
-                    <div className="mb-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/10 dark:to-purple-900/10 p-6 rounded-2xl border border-blue-200 dark:border-blue-500/20">
+                    <div className="mb-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/10 dark:to-purple-900/10 p-6 rounded-2xl border border-blue-200 dark:border-blue-500/20 shadow-sm">
                       <div className="flex items-center gap-2 mb-4">
                         <Target className="text-blue-600 dark:text-blue-400" size={20} />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Enhanced Professional Summary</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Professional Summary</h3>
                       </div>
                       <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium italic">{enhancement.enhancedSummary}</p>
                     </div>
                   )}
 
-                  {/* Grammar Issues */}
-                  {enhancement.grammarIssues?.length > 0 && (
-                    <div className="mb-8">
-                      <div className="flex items-center gap-2 mb-4">
-                        <BookOpen className="text-red-600 dark:text-red-400" size={20} />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Grammar & Language Fixes</h3>
-                      </div>
-                      <div className="space-y-3">
-                        {enhancement.grammarIssues.map((issue, i) => (
-                          <div key={i} className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-500/20">
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle className="text-red-500 shrink-0 mt-1" size={16} />
-                              <div className="flex-1">
-                                <div className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                  <span className="line-through text-red-600 dark:text-red-400">{issue.original}</span>
-                                  {" → "}
-                                  <span className="text-green-600 dark:text-green-400">{issue.corrected}</span>
-                                </div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">{issue.reason}</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Content Improvements */}
-                  {enhancement.contentImprovements?.length > 0 && (
-                    <div className="mb-8">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Lightbulb className="text-amber-600 dark:text-amber-400" size={20} />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Content Improvements</h3>
-                      </div>
-                      <div className="space-y-4">
-                        {enhancement.contentImprovements.map((imp, i) => (
-                          <div key={i} className="bg-amber-50 dark:bg-amber-900/10 p-5 rounded-xl border border-amber-200 dark:border-amber-500/20">
-                            <div className="font-bold text-amber-600 dark:text-amber-400 text-sm mb-2">{imp.section}</div>
-                            <div className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                              <span className="font-bold">Issue:</span> {imp.issue}
-                            </div>
-                            <div className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                              <span className="font-bold">Suggestion:</span> {imp.suggestion}
-                            </div>
-                            {imp.example && (
-                              <div className="mt-3 p-3 bg-white dark:bg-white/5 rounded-lg border border-amber-200 dark:border-amber-500/20">
-                                <div className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">Example:</div>
-                                <div className="text-sm text-slate-700 dark:text-slate-300 italic">{imp.example}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Missing Elements & Keywords */}
-                  <div className="grid md:grid-cols-2 gap-6 mb-8">
-                    {enhancement.missingElements?.length > 0 && (
+                  {/* Rewritten Sections Preview */}
+                  {enhancement.rewrittenResume && (
+                    <div className="space-y-8">
+                      {/* Work Experience */}
                       <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <Zap className="text-purple-600 dark:text-purple-400" size={20} />
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Missing Elements</h3>
-                        </div>
-                        <div className="space-y-2">
-                          {enhancement.missingElements.map((elem, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 bg-purple-50 dark:bg-purple-900/10 p-3 rounded-lg border border-purple-200 dark:border-purple-500/20">
-                              <div className="w-2 h-2 rounded-full bg-purple-500" />
-                              {elem}
+                        <h3 className="text-xl font-black mb-6 flex items-center gap-3 text-slate-900 dark:text-white">
+                          <Briefcase size={22} className="text-blue-600" /> REWRITTEN EXPERIENCE
+                        </h3>
+                        <div className="space-y-6">
+                          {enhancement.rewrittenResume.experience?.map((exp, i) => (
+                            <div key={i} className="relative pl-6 border-l-2 border-slate-100 dark:border-white/5">
+                              <div className="absolute top-0 left-[-9px] w-4 h-4 rounded-full bg-blue-500 border-4 border-white dark:border-slate-900" />
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 mb-2">
+                                <h4 className="font-bold text-lg text-slate-800 dark:text-white">{exp.role}</h4>
+                                <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10 px-3 py-1 rounded-full">{exp.period}</span>
+                              </div>
+                              <p className="text-sm font-bold text-slate-500 mb-3">{exp.company} • {exp.location}</p>
+                              <ul className="space-y-2">
+                                {exp.points?.map((p, pi) => (
+                                  <li key={pi} className="text-sm text-slate-600 dark:text-slate-400 flex gap-2">
+                                    <span className="text-blue-500 mt-1">•</span> {p}
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
                           ))}
                         </div>
                       </div>
-                    )}
 
-                    {enhancement.keywordSuggestions?.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <Target className="text-blue-600 dark:text-blue-400" size={20} />
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Keyword Suggestions</h3>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {enhancement.keywordSuggestions.map((kw, i) => (
-                            <span key={i} className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-500/20 text-sm font-bold">
-                              {kw}
-                            </span>
+                      {/* Action Plan (Optional) */}
+                      <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-3xl border border-slate-100 dark:border-white/10">
+                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <Sparkles size={16} /> Strategy Highlights
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {enhancement.actionableSteps?.map((step, i) => (
+                            <div key={i} className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
+                              <div className="w-2 h-2 rounded-full bg-indigo-500" /> {step}
+                            </div>
                           ))}
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Actionable Steps */}
-                  {enhancement.actionableSteps?.length > 0 && (
-                    <div className="bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/10 dark:to-blue-900/10 p-6 rounded-2xl border border-green-200 dark:border-green-500/20">
-                      <div className="flex items-center gap-2 mb-4">
-                        <TrendingUp className="text-green-600 dark:text-green-400" size={20} />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Action Plan</h3>
-                      </div>
-                      <div className="space-y-3">
-                        {enhancement.actionableSteps.map((step, i) => (
-                          <div key={i} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
-                            <div className="w-6 h-6 rounded-full bg-green-600 dark:bg-green-500 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                              {i + 1}
-                            </div>
-                            <span className="font-medium">{step}</span>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )}
+
                 </motion.div>
               </motion.div>
             )}

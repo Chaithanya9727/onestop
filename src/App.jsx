@@ -153,7 +153,7 @@ export default function App() {
                 <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
                 <Route path="/reset-password/:token" element={<GuestRoute><ResetPassword /></GuestRoute>} />
                 <Route path="/resume-shield" element={<ProtectedRoute><ResumeAnalyzer /></ProtectedRoute>} />
-                <Route path="/mock-interview" element={<ProtectedRoute><MockInterview /></ProtectedRoute>} />
+                <Route path="/mock-interview" element={<MockInterview />} />
                 <Route path="/team-finder" element={<ProtectedRoute><TeamFinder /></ProtectedRoute>} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -233,10 +233,11 @@ export default function App() {
                 </Route>
 
                 <Route path="/jobs" element={<JobList />} />
+                <Route path="/internships" element={<Internships />} />
                 <Route path="/candidate/applications" element={<ProtectedRoute roles={["candidate"]}><CandidateApplications /></ProtectedRoute>} />
                 <Route path="/candidate/profile" element={<ProtectedRoute roles={["candidate"]}><CandidateProfile /></ProtectedRoute>} />
-                <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
-                <Route path="/practice/quiz" element={<ProtectedRoute><QuizGenerator /></ProtectedRoute>} />
+                <Route path="/practice" element={<Practice />} />
+                <Route path="/practice/quiz" element={<QuizGenerator />} />
 
                 {/* ❌ 404 */}
                 <Route path="*" element={<div style={{ textAlign: "center", marginTop: 80 }}>404 — Page Not Found</div>} />

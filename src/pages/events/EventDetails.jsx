@@ -108,8 +108,10 @@ export default function EventDetails() {
                {/* Left Column: Info */}
                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                   <div className="flex flex-wrap gap-3 text-sm font-bold tracking-wide uppercase">
-                     <span className="px-4 py-1.5 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full border border-blue-100 dark:border-blue-500/20">{event.category}</span>
-                     {isOngoing && <span className="px-4 py-1.5 bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full border border-green-100 dark:border-green-500/20 animate-pulse flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-500"></span> Live Now</span>}
+                     <span className="px-4 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-300 rounded-full border border-blue-100 dark:border-blue-500/20">{event.category}</span>
+                     {isOngoing && !isCompleted && <span className="px-4 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-100 dark:border-emerald-500/20 animate-pulse flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> Live Now</span>}
+                     {isCompleted && <span className="px-4 py-1.5 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full border border-rose-100 dark:border-rose-500/20 flex items-center gap-2"><Clock size={14} /> Ended</span>}
+                     {!isOngoing && !isCompleted && <span className="px-4 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full border border-amber-100 dark:border-amber-500/20 flex items-center gap-2"><Calendar size={14} /> Upcoming</span>}
                   </div>
 
                   <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">

@@ -114,7 +114,7 @@ export default function Navbar() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 transition-colors duration-500 supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-[#0a0a0a]/60"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-[#030303]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 transition-colors duration-500 supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-[#030303]/60"
       >
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center justify-between h-[80px]">
@@ -277,7 +277,7 @@ export default function Navbar() {
                   <div className="absolute top-full right-0 pt-4 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right -translate-y-2 group-hover:translate-y-0">
                     <div className="bg-white dark:bg-[#0f1014] rounded-2xl shadow-xl shadow-slate-200/20 dark:shadow-none border border-slate-100 dark:border-white/10 p-1.5 overflow-hidden">
                       <Link to="/community" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                        <MessageSquare size={16} className="text-cyan-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Discussion Feed</span>
+                        <MessageSquare size={16} className="text-cyan-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Discussion Hub</span>
                       </Link>
                       <Link to="/projects" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                         <LayoutDashboard size={16} className="text-violet-500" /> <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Project Showcase</span>
@@ -517,7 +517,7 @@ export default function Navbar() {
                 </div>
 
                 {!user && (
-                  <div className="mt-8">
+                  <div className="mt-8 flex flex-col gap-3">
                     <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="w-full block py-4 bg-indigo-600 rounded-xl text-center text-white font-black text-lg shadow-xl shadow-indigo-600/30">
                       Join Now
                     </Link>

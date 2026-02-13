@@ -36,6 +36,13 @@ export default function MentorProfilePublic() {
    const loadMentor = async () => {
       try {
          const data = await get(`/mentorship/${id}`);
+         // Normalize availability:Backend stores objects, Frontend works better with strings
+         if (data?.mentorProfile?.availability) {
+            data.mentorProfile.availability = data.mentorProfile.availability.map(day => ({
+               ...day,
+               slots: day.slots.map(s => typeof s === 'object' ? s.startTime : s)
+            }));
+         }
          setMentor(data);
       } catch (error) {
          console.error(error);
@@ -106,7 +113,7 @@ export default function MentorProfilePublic() {
             .map(s => s.scheduledTime);
 
          slots = slots.filter(slot => {
-            const timeLabel = typeof slot === 'object' ? slot.startTime : slot;
+            const timeLabel = slot.startTime || slot;
             return !bookedTimes.includes(timeLabel);
          });
       }
@@ -149,30 +156,39 @@ export default function MentorProfilePublic() {
                               </p>
                            </div>
                            <div className="flex gap-2">
-                              {/* Message Button */}
-                              <button
-                                 onClick={() => {
-                                    if (!user) {
-                                       navigate(`/login?redirect=/mentor/${mentor._id}`);
-                                    } else {
-                                       navigate(`/chat?chatWith=${mentor._id}`);
-                                    }
-                                 }}
-                                 className="p-3 bg-blue-600 border border-blue-500 hover:bg-blue-500 rounded-full transition-colors text-white shadow-lg shadow-blue-500/20"
-                                 title="Message Mentor"
-                              >
-                                 <MessageSquare size={20} />
-                              </button>
+                              {/* Message & WhatsApp Buttons - Only for participants with active sessions */}
+                              {mentor.hasSession ? (
+                                 <>
+                                    <button
+                                       onClick={() => {
+                                          if (!user) {
+                                             navigate(`/login?redirect=/mentor/${mentor._id}`);
+                                          } else {
+                                             navigate(`/chat?chatWith=${mentor._id}`);
+                                          }
+                                       }}
+                                       className="p-3 bg-blue-600 border border-blue-500 hover:bg-blue-500 rounded-full transition-colors text-white shadow-lg shadow-blue-500/20"
+                                       title="Message Mentor"
+                                    >
+                                       <MessageSquare size={20} />
+                                    </button>
 
-                              {/* WhatsApp Button */}
-                              {mentor.mobile && (
-                                 <button
-                                    onClick={() => window.open(`https://wa.me/${mentor.mobile.replace(/\D/g, '')}`, '_blank')}
-                                    className="p-3 bg-green-600 border border-green-500 hover:bg-green-500 rounded-full transition-colors text-white shadow-lg shadow-green-500/20"
-                                    title="Chat on WhatsApp"
-                                 >
-                                    <Phone size={20} />
-                                 </button>
+                                    {mentor.mobile && (
+                                       <button
+                                          onClick={() => window.open(`https://wa.me/${mentor.mobile.replace(/\D/g, '')}`, '_blank')}
+                                          className="p-3 bg-green-600 border border-green-500 hover:bg-green-500 rounded-full transition-colors text-white shadow-lg shadow-green-500/20"
+                                          title="Chat on WhatsApp"
+                                       >
+                                          <Phone size={20} />
+                                       </button>
+                                    )}
+                                 </>
+                              ) : (
+                                 <div className="flex items-center">
+                                    <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                       <Shield size={12} /> Chat Locked
+                                    </div>
+                                 </div>
                               )}
 
                               <button className="p-3 bg-white/5 border border-white/5 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white">
@@ -324,7 +340,7 @@ export default function MentorProfilePublic() {
                                  {selectedDate ? (
                                     <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                        {getSlotsForDay(selectedDate).length > 0 ? getSlotsForDay(selectedDate).map((slot, idx) => {
-                                          const timeLabel = typeof slot === 'object' ? slot.startTime : slot;
+                                          const timeLabel = slot.startTime || slot;
                                           return (
                                              <button
                                                 key={idx}
@@ -371,7 +387,7 @@ export default function MentorProfilePublic() {
                                  </div>
                                  <div className="flex justify-between">
                                     <span className="text-slate-400 text-sm">Date & Time</span>
-                                    <span className="text-white font-bold text-sm text-right">{new Date(selectedDate).toLocaleDateString()} at {selectedTime}</span>
+                                    <span className="text-white font-bold text-sm text-right">{new Date(selectedDate).toLocaleDateString()} at {selectedTime?.startTime || selectedTime}</span>
                                  </div>
                                  <div className="flex justify-between pt-4 border-t border-white/10">
                                     <span className="text-white font-bold text-lg">Total</span>

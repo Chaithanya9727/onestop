@@ -385,7 +385,7 @@ export default function Chat() {
                                  Upcoming: {upcomingSession.serviceTitle}
                               </p>
                               <p className="text-sm font-bold text-white">
-                                 {new Date(upcomingSession.scheduledDate).toLocaleDateString()} @ {upcomingSession.scheduledTime}
+                                 {new Date(upcomingSession.scheduledDate).toLocaleDateString()} @ {upcomingSession.scheduledTime?.startTime || upcomingSession.scheduledTime?.toString()}
                                  <span className="ml-2 opacity-60 text-xs font-normal">({upcomingSession.status})</span>
                               </p>
                            </div>

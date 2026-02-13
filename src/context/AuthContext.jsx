@@ -51,6 +51,16 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     loadUser();
+
+    // 🛡️ Safety timeout to prevent permanent loading state
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("⏳ Auth load timed out — forcing loading to false");
+        setLoading(false);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
   }, [token]);
 
   // 🚪 Logout

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../components/ToastProvider";
 import { useSocket } from "../socket";
+import StunningLoader from "../components/StunningLoader";
 
 export default function MentorDashboard() {
    const { user, refreshUser } = useAuth();
@@ -205,12 +206,7 @@ export default function MentorDashboard() {
       }
    };
 
-   if (loading) return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#050505] text-white relative overflow-hidden">
-         <div className="absolute inset-0 bg-blue-600/5 blur-[100px] animate-pulse" />
-         <Loader className="animate-spin text-blue-500 relative z-10" size={40} />
-      </div>
-   );
+   if (loading) return <StunningLoader message="Calibrating Mentor Protocols..." />;
 
    return (
       <div className="absolute inset-0 bg-[#050505] text-white font-sans selection:bg-blue-500/20 overflow-hidden flex">
@@ -454,7 +450,7 @@ export default function MentorDashboard() {
                                                       {new Date(session.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                                       <span className="w-1 h-1 bg-slate-700 rounded-full mx-1" />
                                                       <Clock size={12} className="text-slate-600" />
-                                                      {session.scheduledTime}
+                                                      {session.scheduledTime?.startTime || session.scheduledTime?.toString()}
                                                    </span>
                                                 </div>
                                              </div>
@@ -513,7 +509,7 @@ export default function MentorDashboard() {
                                                    <div className="flex items-center gap-2 mt-0.5">
                                                       <span className="text-[10px] font-black text-blue-500/80 uppercase tracking-widest">{session.serviceTitle}</span>
                                                       <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                                                      <span className="text-xs font-bold text-slate-500">{session.scheduledTime}</span>
+                                                      <span className="text-xs font-bold text-slate-500">{session.scheduledTime?.startTime || session.scheduledTime?.toString()}</span>
                                                    </div>
                                                 </div>
                                              </div>
@@ -616,7 +612,7 @@ export default function MentorDashboard() {
                                        <div className="flex flex-wrap items-center gap-2 mt-1">
                                           <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{session.serviceTitle}</span>
                                           <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                                          <span className="text-xs font-bold text-slate-500">{new Date(session.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} @ {session.scheduledTime}</span>
+                                          <span className="text-xs font-bold text-slate-500">{new Date(session.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} @ {session.scheduledTime?.startTime || session.scheduledTime?.toString()}</span>
                                        </div>
                                     </div>
                                  </div>

@@ -5,8 +5,9 @@ import {
   CheckCircle, XCircle, Briefcase, Mail, Phone, Loader,
   ExternalLink, Linkedin, Globe, Building2, User,
   AlertTriangle, Shield, Eye, X, Calendar, MapPin, Loader2,
-  TrendingUp, ShieldCheck, UserCheck, Search, Filter, MailCheck
+  TrendingUp, ShieldCheck, UserCheck, Search, Filter, MailCheck, ShieldAlert
 } from "lucide-react";
+import StunningLoader from "../components/StunningLoader";
 
 export default function AdminRecruiterApprovals() {
   const { get, patch } = useApi();
@@ -111,12 +112,7 @@ export default function AdminRecruiterApprovals() {
     );
   }, [recruiters, search]);
 
-  if (loading) return (
-    <div className="flex flex-col justify-center items-center h-[60vh] transition-colors">
-      <Loader2 className="animate-spin text-pink-600 mb-4" size={48} />
-      <p className="text-slate-500 font-bold animate-pulse uppercase tracking-[0.2em] text-[10px]">Scanning Identity Signatures...</p>
-    </div>
-  );
+  if (loading) return <StunningLoader message="Fetching Recruiter Data..." fullPage={true} />;
 
   return (
     <div className="max-w-7xl mx-auto p-6 md:p-10 pb-24 relative overflow-hidden">
@@ -131,7 +127,7 @@ export default function AdminRecruiterApprovals() {
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-4 px-3 py-1 bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/20 w-fit rounded-full">
             <Shield size={14} className="text-pink-600 dark:text-pink-400" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-pink-600 dark:text-pink-400">Security Gate</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-pink-600 dark:text-pink-400">Verification Gate</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
             Recruiter <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-rose-600 text-glow-pink">Center</span>
@@ -141,16 +137,16 @@ export default function AdminRecruiterApprovals() {
 
         <div className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-sm">
           <TrendingUp size={16} className="text-pink-500" />
-          <span className="text-sm font-black text-slate-500 uppercase tracking-widest">Global Partners: {stats.total}</span>
+          <span className="text-sm font-black text-slate-500 uppercase tracking-widest">Total Recruiters: {stats.total}</span>
         </div>
       </motion.div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {[
-          { label: "Active Submissions", val: stats.pending, icon: Briefcase, color: "text-blue-500" },
+          { label: "Pending Approvals", val: stats.pending, icon: Briefcase, color: "text-blue-500" },
           { label: "High Trust Partners", val: stats.highTrust, icon: ShieldCheck, color: "text-emerald-500" },
-          { label: "Risk Assessments", val: stats.total, icon: AlertTriangle, color: "text-amber-500" },
+          { label: "Total Reviews", val: stats.total, icon: AlertTriangle, color: "text-amber-500" },
         ].map((s, i) => (
           <div key={i} className="p-8 bg-white dark:bg-[#0f1014] rounded-3xl border border-slate-100 dark:border-white/5 flex items-center justify-between group cursor-default shadow-xl shadow-slate-200/50 dark:shadow-none">
             <div>
@@ -168,11 +164,11 @@ export default function AdminRecruiterApprovals() {
       <div className="mb-10 flex gap-4">
         <div className="relative flex-1 group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-500 transition-colors" size={20} />
-          <input type="text" placeholder="Probe corporate identity by name, org, or address..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Search by name, company, or email address..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-14 pr-6 py-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl font-bold text-sm focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 shadow-sm transition-all dark:text-white" />
         </div>
         <button onClick={fetchRecruiters} className="h-[60px] px-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-3xl uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl">
-          Update Feed
+          Refresh List
         </button>
       </div>
 
@@ -185,8 +181,8 @@ export default function AdminRecruiterApprovals() {
       {filteredRecruiters.length === 0 ? (
         <div className="text-center py-32 bg-white dark:bg-[#0f1014] rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-white/5 transition-colors">
           <Briefcase size={64} className="mx-auto text-slate-200 dark:text-white/5 mb-6" />
-          <p className="text-slate-400 dark:text-slate-500 font-black text-xl uppercase tracking-widest">Secure Area: No Entities Found</p>
-          <p className="text-slate-500 dark:text-slate-600 font-medium mt-2">All identities have been processed or no matches found.</p>
+          <p className="text-slate-400 dark:text-slate-500 font-black text-xl uppercase tracking-widest">No Recruiters Found</p>
+          <p className="text-slate-500 dark:text-slate-600 font-medium mt-2">All applications have been processed or no matches found.</p>
         </div>
       ) : (
         <div className="grid gap-8">
@@ -215,7 +211,8 @@ export default function AdminRecruiterApprovals() {
                           <ShieldCheck size={20} className="text-pink-500" />
                         </div>
                       </div>
-                      <div className={`px-4 py-2 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest shadow-sm ${badge.color}`}>
+                      <div className={`px-4 py-2 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest shadow-sm flex items-center gap-2 ${badge.color}`}>
+                        <badge.icon size={14} />
                         {badge.label}
                       </div>
                       <div className="w-full h-2.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
@@ -232,18 +229,18 @@ export default function AdminRecruiterApprovals() {
                         </div>
                         <div className="flex flex-wrap items-center gap-4 mt-4">
                           <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-500/20 font-black text-xs uppercase tracking-widest"><Building2 size={16} /> {rec.orgName}</span>
-                          <span className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest"><MapPin size={16} className="text-pink-500" /> Node Location: Regional</span>
-                          <span className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-500">{rec.designation || "Executive"}</span>
+                          <span className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest"><MapPin size={16} className="text-pink-500" /> Location: India</span>
+                          <span className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-500">{rec.designation || "Recruiter"}</span>
                         </div>
                       </div>
 
                       {/* Grid of Verified Evidence */}
                       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {[
-                          { label: "Corporate Email", ok: isEmailCorporate(rec.email), val: rec.email, icon: MailCheck },
-                          { label: "Network Domain", ok: !!rec.companyWebsite, val: rec.companyWebsite || "Not provided", icon: Globe },
-                          { label: "Professional Intel", ok: !!rec.socialLinks?.linkedin, val: "LinkedIn Bio Attached", icon: Linkedin },
-                          { label: "Gov Verification", ok: rec.aadhaarVerification?.verified, val: rec.aadhaarVerification?.verified ? "Identity confirmed" : rec.aadhaarVerification?.documentUrl ? "Scanning Doc..." : "Identity Gap", icon: Shield }
+                          { label: "Work Email", ok: isEmailCorporate(rec.email), val: rec.email, icon: MailCheck },
+                          { label: "Company Website", ok: !!rec.companyWebsite, val: rec.companyWebsite || "Not provided", icon: Globe },
+                          { label: "Social Profile", ok: !!rec.socialLinks?.linkedin, val: "LinkedIn Profile Linked", icon: Linkedin },
+                          { label: "ID Verification", ok: rec.aadhaarVerification?.verified, val: rec.aadhaarVerification?.verified ? "Identity verified" : rec.aadhaarVerification?.documentUrl ? "Reviewing document..." : "Not Verified", icon: Shield }
                         ].map((item, i) => (
                           <div key={i} className={`p-5 rounded-[1.5rem] border-2 transition-all ${item.ok ? 'bg-emerald-500/[0.03] border-emerald-500/20' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-100 dark:border-white/5'}`}>
                             <div className="flex items-center justify-between mb-2">
@@ -257,37 +254,37 @@ export default function AdminRecruiterApprovals() {
 
                       {/* Contact Intelligence */}
                       <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                        <a href={`mailto:${rec.email}`} className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 hover:border-pink-500 transition-all uppercase tracking-[0.15em] hover:bg-pink-50 dark:hover:bg-pink-500/5"><Mail size={16} /> Transmission</a>
-                        {rec.mobile && <a href={`tel:${rec.mobile}`} className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-all uppercase tracking-[0.15em] hover:bg-emerald-50 dark:hover:bg-emerald-500/5"><Phone size={16} /> Secure Call</a>}
+                        <a href={`mailto:${rec.email}`} className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 hover:border-pink-500 transition-all uppercase tracking-[0.15em] hover:bg-pink-50 dark:hover:bg-pink-500/5"><Mail size={16} /> Send Email</a>
+                        {rec.mobile && <a href={`tel:${rec.mobile}`} className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-all uppercase tracking-[0.15em] hover:bg-emerald-50 dark:hover:bg-emerald-500/5"><Phone size={16} /> Call Partner</a>}
                         {rec.aadhaarVerification?.documentUrl && (
-                          <a href={rec.aadhaarVerification.documentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-6 py-3 bg-amber-50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-2xl text-[10px] font-black hover:bg-amber-100 transition-all uppercase tracking-[0.15em]"><Shield size={16} /> Probe Documents</a>
+                          <a href={rec.aadhaarVerification.documentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-6 py-3 bg-amber-50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-2xl text-[10px] font-black hover:bg-amber-100 transition-all uppercase tracking-[0.15em]"><Shield size={16} /> View ID Proof</a>
                         )}
                       </div>
                     </div>
 
                     {/* Right: Command Actions */}
                     <div className="flex flex-col justify-center gap-4 min-w-[220px]">
-                      <button onClick={() => setSelectedRecruiter(rec)} className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl">Full Dossier</button>
+                      <button onClick={() => setSelectedRecruiter(rec)} className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-xl">View Profile</button>
                       {rec.status === 'pending' && (
                         <>
                           <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleAction(rec._id, "approve")} disabled={actionLoading === rec._id}
                             className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-xs font-black shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-3 uppercase tracking-[0.2em] hover:bg-emerald-700 transition-all disabled:opacity-50">
-                            {actionLoading === rec._id ? <Loader className="animate-spin" size={18} /> : <CheckCircle size={18} />} Grant Access
+                            {actionLoading === rec._id ? <Loader className="animate-spin" size={18} /> : <CheckCircle size={18} />} Approve
                           </motion.button>
                           <button onClick={() => handleAction(rec._id, "reject")} disabled={actionLoading === rec._id}
                             className="w-full py-5 bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 text-rose-600 dark:text-rose-400 rounded-2xl text-xs font-black hover:bg-rose-100 transition-all uppercase tracking-[0.2em] active:scale-95">
-                            {actionLoading === rec._id ? <Loader className="animate-spin" size={18} /> : <XCircle size={18} />} Blacklist
+                            {actionLoading === rec._id ? <Loader className="animate-spin" size={18} /> : <XCircle size={18} />} Reject
                           </button>
                         </>
                       )}
                       {rec.status !== 'pending' && (
                         <div className={`py-5 rounded-2xl text-center font-black text-xs uppercase tracking-[0.2em] border-2 shadow-xl ${rec.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-rose-500/10 text-rose-500 border-rose-500/30'}`}>
-                          {rec.status} Sector Entry
+                          Verified {rec.status}
                         </div>
                       )}
                       {rec.aadhaarVerification?.documentUrl && !rec.aadhaarVerification.verified && (
                         <button onClick={() => verifyAadhaar(rec._id)} disabled={actionLoading === `aadhaar-${rec._id}`} className="w-full py-4 bg-white dark:bg-transparent border border-pink-500 text-pink-500 rounded-2xl text-[9px] font-black hover:bg-pink-50 transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-pink-500/10">
-                          {actionLoading === `aadhaar-${rec._id}` ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Authorize ID Legality
+                          {actionLoading === `aadhaar-${rec._id}` ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Verify Identity
                         </button>
                       )}
                     </div>
@@ -320,10 +317,10 @@ export default function AdminRecruiterApprovals() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                 {[
-                  { label: "Voice Frequency", val: selectedRecruiter.mobile, icon: Phone, color: "text-emerald-500" },
-                  { label: "Terminal Address", val: selectedRecruiter.email, icon: Mail, color: "text-blue-500" },
-                  { label: "Entity Matrix", val: selectedRecruiter.orgName, icon: Building2, color: "text-indigo-500" },
-                  { label: "Temporal Entry", val: new Date(selectedRecruiter.createdAt).toLocaleDateString(), icon: Calendar, color: "text-amber-500" }
+                  { label: "Mobile Number", val: selectedRecruiter.mobile, icon: Phone, color: "text-emerald-500" },
+                  { label: "Email Address", val: selectedRecruiter.email, icon: Mail, color: "text-blue-500" },
+                  { label: "Organization", val: selectedRecruiter.orgName, icon: Building2, color: "text-indigo-500" },
+                  { label: "Joined On", val: new Date(selectedRecruiter.createdAt).toLocaleDateString(), icon: Calendar, color: "text-amber-500" }
                 ].map((item, i) => (
                   <div key={i} className="p-8 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-slate-100 dark:border-white/5 group hover:border-pink-500/20 transition-all shadow-inner">
                     <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] flex items-center gap-3 mb-3"><item.icon size={16} className={item.color} /> {item.label}</label>
@@ -335,13 +332,13 @@ export default function AdminRecruiterApprovals() {
               <div className="space-y-4">
                 {selectedRecruiter.companyWebsite && (
                   <a href={`https://${selectedRecruiter.companyWebsite}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-8 bg-blue-600 text-white rounded-[2.5rem] shadow-2xl shadow-blue-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
-                    <span className="font-black text-sm uppercase tracking-[0.2em]">Explore Corporate Core</span>
+                    <span className="font-black text-sm uppercase tracking-[0.2em]">Visit Website</span>
                     <ExternalLink size={24} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </a>
                 )}
                 {selectedRecruiter.socialLinks?.linkedin && (
                   <a href={selectedRecruiter.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-8 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-900/40 hover:scale-[1.02] active:scale-95 transition-all group">
-                    <span className="font-black text-sm uppercase tracking-[0.2em]">LinkedIn Intelligence</span>
+                    <span className="font-black text-sm uppercase tracking-[0.2em]">LinkedIn Profile</span>
                     <Linkedin size={24} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </a>
                 )}
